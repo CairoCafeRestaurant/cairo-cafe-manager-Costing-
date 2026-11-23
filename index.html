@@ -122,7 +122,7 @@ tr.tot td{font-weight:bold;background:#eef2f7}
         <h3>جدول مقارنة التكلفة والسعر المقترح</h3>
         <button class="btn-secondary btn-sm" onclick="exportCSV()">تصدير Excel</button>
       </div>
-      <p class="hint">السعر المقترح = إجمالي التكلفة ÷ (1 − هامش الربح المستهدف). يمكنك تجربة تعديل هامش الربح أو التكلفة العامة أو السعر مباشرة.</p>
+      <p class="hint">السعر المقترح = إجمالي التكلفة ÷ (1 − هامش الربح المستهدف). يمكنك تعديل هامش الربح أو التكلفة العامة أو السعر مباشرة.</p>
       <div class="tw"><table id="mealsTable"></table></div>
     </div>
   </div>
@@ -174,7 +174,7 @@ tr.tot td{font-weight:bold;background:#eef2f7}
 </div>
 
 <script>
-const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbwyeGm3kgb9uExG0-gxcqBC80hTGf2N2HqtoKIkcNZpDqO8o3y63kcwuKluY3zAQ2Ss/exec';[cite: 2, 6]
+const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbwyeGm3kgb9uExG0-gxcqBC80hTGf2N2HqtoKIkcNZpDqO8o3y63kcwuKluY3zAQ2Ss/exec';
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const N = s => { const v = Number(String(s == null ? '' : s).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٫/g, '.').replace(/[,٬\s]/g, '')); return isFinite(v) ? v : 0; };
