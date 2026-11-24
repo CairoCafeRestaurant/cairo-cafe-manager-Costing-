@@ -1,423 +1,942 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>حاسبة تكلفة الوجبات وتسعيرها</title>
-<style>
-:root{--bg:#f4f6f8;--card:#fff;--primary:#2c3e50;--accent:#d35400;--text:#333;--border:#e0e4e8;--danger:#c0392b;--success:#27ae60}
-*{box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
-body{margin:0;background:var(--bg);color:var(--text);padding-bottom:40px}
-header{background:var(--primary);color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;gap:8px}
-header h1{margin:0;font-size:1.15rem}.user-bar{font-size:.8rem;color:#ddd}
-.nav-tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;position:sticky;top:56px;z-index:99}
-.nav-tabs button{flex:1;padding:12px;border:none;background:none;font-weight:bold;color:#666;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;width:auto}
-.nav-tabs button.active{color:var(--accent);border-bottom-color:var(--accent)}
-.container{max-width:1000px;margin:16px auto;padding:0 12px}
-.card{background:var(--card);border-radius:8px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.card h3{margin-top:0;color:var(--primary)}
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
-.kpi-box{background:#fff;padding:14px;border-radius:8px;border-right:4px solid var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.kpi-box.profit{border-right-color:var(--success)}.kpi-box.warn{border-right-color:var(--accent)}
-.kpi-title{font-size:.8rem;color:#666;margin-bottom:4px}.kpi-val{font-size:1.15rem;font-weight:bold}
-.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px}
-input,select,button{width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:.95rem}
-button{cursor:pointer}button:disabled{opacity:.6;cursor:wait}
-button.btn-primary{background:var(--accent);color:#fff;border:none;font-weight:bold}
-button.btn-secondary{background:var(--primary);color:#fff;border:none}
-button.btn-danger{background:var(--danger);color:#fff;border:none;padding:4px 8px;width:auto;font-size:.8rem}
-button.btn-sm{padding:5px 10px;width:auto;font-size:.8rem}
-table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:10px}
-th,td{padding:8px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}th{background:#f8f9fa}
-tr.tot td{font-weight:bold;background:#eef2f7}
-.badge{padding:2px 7px;border-radius:4px;font-size:.75rem;font-weight:bold;background:#e8ecf0}
-.badge-ok{background:#d4efdf;color:var(--success)}.badge-low{background:#fadbd8;color:var(--danger)}
-.pos{color:var(--success);font-weight:bold}.neg{color:var(--danger);font-weight:bold}.hint{color:#777;font-size:.82rem}
-.hidden{display:none!important}
-#loginModal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:999}
-#loginBox{background:#fff;padding:24px;border-radius:10px;width:92%;max-width:400px;max-height:94vh;overflow:auto}
-.loader{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:6px 16px;border-radius:20px;font-size:.85rem;font-weight:bold;z-index:500}
-#toast{position:fixed;bottom:18px;left:12px;right:12px;margin:0 auto;max-width:520px;background:#222;color:#fff;padding:11px;border-radius:10px;text-align:center;z-index:1000;display:none}
-.summary-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;background:#eef2f7;padding:12px;border-radius:8px;margin-top:12px;text-align:center}
-.summary-strip span{display:block;font-size:.78rem;color:#555}.summary-strip strong{font-size:1.05rem}
-.tw{overflow-x:auto}label.l{display:block;font-size:.8rem;color:#666;margin:2px 0}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام التسعير العلمي للمطاعم | أوزبكستان (UZS)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Cairo', sans-serif; background-color: #f3f4f6; }
+    .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 700; }
+    .loader { border-top-color: #2563eb; animation: spinner 0.8s linear infinite; }
+    @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
 </head>
-<body>
+<body class="text-gray-800 antialiased">
 
-<div id="loginModal">
-  <div id="loginBox">
-    <h2 style="margin-top:0;text-align:center">🍽️ حاسبة تكلفة الوجبات</h2>
-    <input type="text" id="lUser" placeholder="اسم الدخول" autocomplete="username" autocapitalize="none" style="margin-bottom:10px">
-    <input type="password" id="lPass" placeholder="كلمة المرور" autocomplete="current-password" style="margin-bottom:14px" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="btn-primary" id="lBtn" onclick="doLogin()">تسجيل الدخول</button>
-    <p id="lErr" style="color:#c0392b;font-size:.85rem;text-align:center;min-height:1.2em"></p>
-    <details style="margin-top:10px;font-size:.8rem;color:#666">
-      <summary style="cursor:pointer">⚙️ رابط السيرفر واختبار الاتصال</summary>
-      <div style="margin-top:8px">
-        <input type="text" id="apiInput" placeholder="https://script.google.com/macros/s/AKfycby3NPsWvRa973gTmaYGoyPQhRlCmHN-yO72EhebCCM_aDbtzroszel7A6K9p9fY6c-b/exec" dir="ltr" style="font-size:.78rem;margin-bottom:6px">
-        <div style="display:flex;gap:6px">
-          <button class="btn-secondary btn-sm" style="flex:1" onclick="saveApiUrl()">حفظ الرابط</button>
-          <button class="btn-secondary btn-sm" style="flex:1" onclick="testApi()">اختبار الاتصال</button>
+  <!-- شريط التنبيهات العلوي -->
+  <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 hidden px-6 py-3 rounded-lg shadow-lg text-white font-semibold text-sm transition-all"></div>
+
+  <!-- شاشة التحميل -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-black/30 backdrop-blur-xs z-40 hidden flex items-center justify-center">
+    <div class="bg-white p-5 rounded-xl shadow-xl flex items-center gap-3">
+      <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-8 w-8"></div>
+      <span class="font-bold text-gray-700">جاري المعالجة...</span>
+    </div>
+  </div>
+
+  <!-- ================= شاشة تسجيل الدخول ================= -->
+  <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white max-w-md w-full rounded-2xl shadow-xl p-8 border border-gray-100">
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-blue-100 text-blue-600 text-2xl font-extrabold mb-3">UZS</div>
+        <h1 class="text-2xl font-extrabold text-gray-900">نظام التسعير العلمي للمطاعم</h1>
+        <p class="text-sm text-gray-500 mt-1">متوافق مع النظام الضريبي في أوزبكستان (QQS / Aylanma)</p>
+      </div>
+
+      <!-- إعداد رابط API -->
+      <div class="mb-5 bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <label class="block text-xs font-bold text-slate-600 mb-1">رابط Google Apps Script Web App URL:</label>
+        <div class="flex gap-2">
+          <input id="apiUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec"
+            class="w-full text-xs p-2 border rounded-lg bg-white dir-ltr text-left focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <button onclick="testApiPing()" type="button" class="px-3 py-1.5 bg-slate-700 text-white text-xs rounded-lg hover:bg-slate-800 shrink-0">فحص</button>
         </div>
-        <p id="apiMsg" style="margin:8px 0 0;line-height:1.6"></p>
+        <p id="pingStatus" class="text-[11px] mt-1 text-gray-500"></p>
       </div>
-    </details>
-  </div>
-</div>
 
-<header>
-  <div><h1>🍽️ حاسبة تكلفة الوجبات</h1><div id="userInfo" class="user-bar"></div></div>
-  <button onclick="logout()" style="width:auto;padding:6px 12px;background:#c0392b;color:#fff;border:none">خروج</button>
-</header>
-
-<div class="nav-tabs" id="tabs">
-  <button class="active" data-t="pricing">💰 تسعير الوجبات</button>
-  <button data-t="materials">🧂 الخامات وأسعارها</button>
-  <button data-t="settings">⚙️ الإعدادات والحساب</button>
-</div>
-
-<div id="loader" class="loader hidden">جارٍ التحميل...</div>
-<div id="toast"></div>
-
-<div class="container">
-
-  <!-- 1. تسعير الوجبات والوصفات -->
-  <div id="sec-pricing" class="tab-sec">
-    <div class="kpi-grid" id="kpiGrid"></div>
-
-    <div class="card">
-      <h3>إضافة وجبة جديدة</h3>
-      <div class="form-grid">
-        <div><label class="l">اسم الوجبة</label><input type="text" id="mName" placeholder="مثال: وجبة شاورما دجاج"></div>
-        <div><label class="l">الفئة</label><input type="text" id="mCat" placeholder="وجبات رئيسية، مشروبات..."></div>
-        <div><label class="l">هامش الربح المستهدف (%)</label><input type="text" inputmode="decimal" id="mMargin" value="60"></div>
-        <div><label class="l">نوع التكلفة العامة</label>
-          <select id="mOhMode"><option value="pct">نسبة من الخامات (%)</option><option value="fixed">مبلغ ثابت للوجبة</option></select>
+      <form onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">اسم الدخول</label>
+          <input id="loginUser" type="text" required placeholder="owner أو manager"
+            class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none" />
         </div>
-        <div><label class="l">قيمة التكلفة العامة</label><input type="text" inputmode="decimal" id="mOhVal" value="20"></div>
-        <div><label class="l">سعر البيع الحالي (اختياري)</label><input type="text" inputmode="decimal" id="mPrice" placeholder="0 = يُستخدم المقترح"></div>
-        <div><label class="l">&nbsp;</label><button class="btn-primary" onclick="addMeal()">إضافة الوجبة</button></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>مكونات الوجبة (الوصفة) وحساب التكلفة</h3>
-      <div class="form-grid">
-        <div><label class="l">الوجبة</label><select id="rMeal" onchange="renderRecipe()"></select></div>
-        <div><label class="l">الخامة</label><select id="rMat" onchange="syncUnit()"></select></div>
-        <div><label class="l">الكمية للوجبة</label><input type="text" inputmode="decimal" id="rQty" placeholder="مثال: 150"></div>
-        <div><label class="l">الوحدة</label><input type="text" id="rUnit" list="unitList" placeholder="جم، كجم، مل، لتر"></div>
-        <div><label class="l">&nbsp;</label><button class="btn-secondary" onclick="addRecipeItem()">إضافة للوصفة</button></div>
-      </div>
-      <datalist id="unitList">
-        <option value="كجم"><option value="جم"><option value="جرام"><option value="لتر"><option value="مل"><option value="قطعة"><option value="علبة"><option value="حبة">
-      </datalist>
-      <div class="tw"><table id="recipeTable"></table></div>
-      <div id="recipeSummary"></div>
-    </div>
-
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <h3>جدول مقارنة التكلفة والسعر المقترح</h3>
-        <button class="btn-secondary btn-sm" onclick="exportCSV()">تصدير Excel</button>
-      </div>
-      <p class="hint">السعر المقترح = إجمالي التكلفة ÷ (1 − هامش الربح المستهدف). يمكنك تعديل هامش الربح أو التكلفة العامة أو السعر مباشرة.</p>
-      <div class="tw"><table id="mealsTable"></table></div>
-    </div>
-  </div>
-
-  <!-- 2. الخامات وأسعارها -->
-  <div id="sec-materials" class="tab-sec hidden">
-    <div class="card">
-      <h3>تعريف خامة جديدة</h3>
-      <div class="form-grid">
-        <div><label class="l">اسم الخامة</label><input type="text" id="matName" placeholder="مثال: صدور دجاج"></div>
-        <div><label class="l">الفئة</label><input type="text" id="matCat" placeholder="لحوم، ألبان، تغليف..."></div>
-        <div><label class="l">الوحدة</label><input type="text" id="matUnit" list="unitList" value="كجم"></div>
-        <div><label class="l">سعر الوحدة</label><input type="text" inputmode="decimal" id="matCost" placeholder="0"></div>
-        <div><label class="l">&nbsp;</label><button class="btn-primary" onclick="addMaterial()">حفظ الخامة</button></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>قائمة الخامات وأسعار وحداتها</h3>
-      <div class="tw"><table id="materialsTable"></table></div>
-    </div>
-  </div>
-
-  <!-- 3. الإعدادات والحساب -->
-  <div id="sec-settings" class="tab-sec hidden">
-    <div class="card owner-only">
-      <h3>إعدادات التسعير والتكلفة العامة الافتراضية</h3>
-      <div class="form-grid">
-        <div><label class="l">رمز العملة</label><input type="text" id="sCur"></div>
-        <div><label class="l">هامش الربح المستهدف الافتراضي (%)</label><input type="text" inputmode="decimal" id="sMargin"></div>
-        <div><label class="l">نوع التكلفة العامة الافتراضي</label>
-          <select id="sOhMode"><option value="pct">نسبة من الخامات (%)</option><option value="fixed">مبلغ ثابت للوجبة</option></select>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">كلمة المرور</label>
+          <input id="loginPass" type="password" required placeholder="••••••••"
+            class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none" />
         </div>
-        <div><label class="l">قيمة التكلفة العامة الافتراضية</label><input type="text" inputmode="decimal" id="sOhVal"></div>
-        <div><label class="l">&nbsp;</label><button class="btn-primary" onclick="saveSettings()">حفظ الإعدادات</button></div>
-      </div>
+        <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition">
+          تسجيل الدخول
+        </button>
+      </form>
     </div>
+  </div>
 
-    <div class="card">
-      <h3>تغيير كلمة المرور</h3>
-      <div class="form-grid">
-        <input type="password" id="pwOld" placeholder="كلمة المرور الحالية" autocomplete="current-password">
-        <input type="password" id="pwNew" placeholder="الجديدة (8 أحرف فأكثر)" autocomplete="new-password">
-        <button class="btn-secondary" onclick="changePw()">تغيير</button>
+  <!-- ================= التطبيق الرئيسي ================= -->
+  <div id="appScreen" class="hidden min-h-screen flex flex-col">
+    <!-- الهيدر -->
+    <header class="bg-white shadow-xs border-b sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="bg-blue-600 text-white font-extrabold px-3 py-1 rounded-lg text-sm">UZS Costing</span>
+          <div>
+            <h2 class="font-bold text-gray-900 text-base leading-tight">هندسة وتسعير قوائم الطعام</h2>
+            <span id="taxBadge" class="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-semibold"></span>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="userBadge" class="text-xs font-bold bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full"></span>
+          <button onclick="loadData()" class="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-1.5 rounded-lg">تحديث البيانات</button>
+          <button onclick="handleLogout()" class="text-xs bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-1.5 rounded-lg">خروج</button>
+        </div>
+      </div>
+
+      <!-- التبويبات -->
+      <nav class="max-w-7xl mx-auto px-4 flex gap-6 overflow-x-auto text-sm">
+        <button onclick="switchTab('meals')" id="tab-meals" class="py-3 tab-active whitespace-nowrap">الوجبات والتسعير العلمي</button>
+        <button onclick="switchTab('materials')" id="tab-materials" class="py-3 text-gray-500 hover:text-gray-800 whitespace-nowrap">المواد الخام والهدر (Yield)</button>
+        <button onclick="switchTab('settings')" id="tab-settings" class="py-3 text-gray-500 hover:text-gray-800 whitespace-nowrap">إعدادات الضرائب والأمان</button>
+      </nav>
+    </header>
+
+    <!-- المحتوى -->
+    <main class="max-w-7xl mx-auto w-full px-4 py-6 flex-1">
+
+      <!-- مؤشرات الأداء السريعة -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-xl shadow-xs border border-gray-100">
+          <p class="text-xs text-gray-500 font-semibold">إجمالي الوجبات</p>
+          <p id="kpiTotalMeals" class="text-2xl font-extrabold text-gray-900 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-xs border border-gray-100">
+          <p class="text-xs text-gray-500 font-semibold">متوسط تكلفة الغذاء (Food Cost)</p>
+          <p id="kpiAvgFoodCost" class="text-2xl font-extrabold text-blue-600 mt-1">0%</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-xs border border-gray-100">
+          <p class="text-xs text-gray-500 font-semibold">متوسط هامش الربح الصافي</p>
+          <p id="kpiAvgMargin" class="text-2xl font-extrabold text-emerald-600 mt-1">0%</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-xs border border-gray-100">
+          <p class="text-xs text-gray-500 font-semibold">المواد الخام المسجلة</p>
+          <p id="kpiTotalMats" class="text-2xl font-extrabold text-purple-600 mt-1">0</p>
+        </div>
+      </div>
+
+      <!-- ================= تبويب 1: الوجبات والتسعير ================= -->
+      <section id="view-meals" class="space-y-6">
+        <div class="flex flex-wrap justify-between items-center gap-3">
+          <input id="mealSearch" oninput="renderMeals()" type="text" placeholder="بحث باسم الوجبة أو التصنيف..."
+            class="p-2.5 border rounded-xl bg-white w-full sm:w-72 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <button onclick="openAddMealModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm shadow-xs">
+            + إضافة وجبة / مشروب جديد
+          </button>
+        </div>
+
+        <div id="mealsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+      </section>
+
+      <!-- ================= تبويب 2: المواد الخام ================= -->
+      <section id="view-materials" class="hidden space-y-6">
+        <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
+          <h3 class="font-bold text-gray-900 mb-3 text-base">إضافة مادة خام جديدة</h3>
+          <form onsubmit="handleAddMaterial(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+            <input id="matName" type="text" required placeholder="اسم الخامة (مثلاً: لحم بقري)" class="p-2.5 border rounded-xl text-sm lg:col-span-2" />
+            <input id="matCat" type="text" placeholder="التصنيف (لحوم، خضار...)" class="p-2.5 border rounded-xl text-sm" />
+            <select id="matUnit" class="p-2.5 border rounded-xl text-sm bg-white">
+              <option value="كجم">كجم (kg)</option>
+              <option value="جم">جم (g)</option>
+              <option value="لتر">لتر (L)</option>
+              <option value="مل">مل (ml)</option>
+              <option value="حبة">حبة / قطعة</option>
+              <option value="علبة">علبة</option>
+            </select>
+            <input id="matCost" type="number" step="any" min="0" required placeholder="سعر الشراء (UZS)" class="p-2.5 border rounded-xl text-sm" />
+            <div class="flex gap-2">
+              <input id="matYield" type="number" step="0.1" min="1" max="100" value="100" title="نسبة الصافي بعد التنظيف والطهي %" placeholder="الصافي %" class="p-2.5 border rounded-xl text-sm w-24" />
+              <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 rounded-xl text-sm flex-1">إضافة</button>
+            </div>
+          </form>
+          <p class="text-xs text-gray-500 mt-2">* <b>نسبة الصافي (Yield %):</b> إذا اشتريت 1 كجم لحم وبعد التنظيف يتبقى 800 جم صافي، أدخل <b>80</b> ليحسب النظام التكلفة الحقيقية تلقائياً.</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-x-auto">
+          <table class="w-full text-sm text-right">
+            <thead class="bg-gray-50 text-gray-600 font-bold border-b">
+              <tr>
+                <th class="p-3.5">اسم الخامة</th>
+                <th class="p-3.5">التصنيف</th>
+                <th class="p-3.5">الوحدة</th>
+                <th class="p-3.5">سعر الشراء</th>
+                <th class="p-3.5">نسبة الصافي (Yield)</th>
+                <th class="p-3.5">التكلفة الفعالة الحقيقية</th>
+                <th class="p-3.5 text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="materialsTableBody" class="divide-y"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================= تبويب 3: الإعدادات ================= -->
+      <section id="view-settings" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- إعدادات الضرائب والتسعير -->
+        <div id="ownerSettingsCard" class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
+          <h3 class="font-bold text-lg text-gray-900 mb-1">إعدادات الضرائب والتسعير (أوزبكستان)</h3>
+          <p class="text-xs text-gray-500 mb-4">هذه الإعدادات متاحة لحساب المالك (Owner) فقط وتؤثر على كافة الوجبات.</p>
+          <form onsubmit="handleSaveSettings(event)" class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">العملة</label>
+                <input id="setCurrency" type="text" value="UZS" class="w-full p-2.5 border rounded-xl text-sm bg-gray-50" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">هامش الربح المستهدف الافتراضي (%)</label>
+                <input id="setMargin" type="number" min="0" max="94" step="0.1" class="w-full p-2.5 border rounded-xl text-sm" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">نظام المصاريف العامة (Overhead)</label>
+                <select id="setOhMode" class="w-full p-2.5 border rounded-xl text-sm bg-white">
+                  <option value="pct">نسبة % من تكلفة الخامات</option>
+                  <option value="fixed">مبلغ ثابت لكل وجبة (UZS)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">قيمة المصاريف العامة</label>
+                <input id="setOhVal" type="number" min="0" step="any" class="w-full p-2.5 border rounded-xl text-sm" />
+              </div>
+            </div>
+
+            <div class="p-4 bg-blue-50/70 rounded-xl border border-blue-100 space-y-3">
+              <label class="block text-xs font-bold text-blue-900">النظام الضريبي في أوزبكستان</label>
+              <select id="setTaxMode" onchange="onTaxModeChange()" class="w-full p-2.5 border rounded-xl text-sm bg-white">
+                <option value="vat_12">ضريبة القيمة المضافة QQS / VAT (12%)</option>
+                <option value="turnover_4">ضريبة الدوران Aylanma Soliq (4%)</option>
+                <option value="none">معفى / بدون ضريبة (0%)</option>
+              </select>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-gray-700 mb-1">نسبة الضريبة (%)</label>
+                  <input id="setTaxPct" type="number" min="0" max="50" step="0.1" class="w-full p-2.5 border rounded-xl text-sm bg-white" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-gray-700 mb-1">تقريب السعر لأقرب (UZS)</label>
+                  <input id="setRounding" type="number" min="1" step="1" value="100" class="w-full p-2.5 border rounded-xl text-sm bg-white" />
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm">
+              حفظ الإعدادات العامة
+            </button>
+          </form>
+        </div>
+
+        <!-- تغيير كلمة المرور -->
+        <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 h-fit">
+          <h3 class="font-bold text-lg text-gray-900 mb-4">تغيير كلمة المرور</h3>
+          <form onsubmit="handleChangePassword(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">كلمة المرور الحالية</label>
+              <input id="oldPass" type="password" required class="w-full p-2.5 border rounded-xl text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 mb-1">كلمة المرور الجديدة (8 أحرف على الأقل)</label>
+              <input id="newPass" type="password" minlength="8" required class="w-full p-2.5 border rounded-xl text-sm" />
+            </div>
+            <button type="submit" class="w-full py-2.5 bg-gray-800 hover:bg-gray-900 text-white font-bold rounded-xl text-sm">
+              تحديث كلمة المرور
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ================= نافذة إضافة وجبة جديدة ================= -->
+  <div id="addMealModal" class="fixed inset-0 bg-black/50 z-40 hidden flex items-center justify-center p-4">
+    <div class="bg-white max-w-lg w-full rounded-2xl p-6 shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-3 mb-4">
+        <h3 class="font-bold text-lg">إضافة وجبة أو مشروب جديد</h3>
+        <button onclick="closeModal('addMealModal')" class="text-gray-400 hover:text-gray-700 text-xl font-bold">&times;</button>
+      </div>
+      <form onsubmit="handleAddMeal(event)" class="space-y-3 text-sm">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold mb-1">اسم الوجبة *</label>
+            <input id="newMealName" type="text" required placeholder="مثلاً: بلوف أوزبكي" class="w-full p-2.5 border rounded-xl" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">التصنيف</label>
+            <input id="newMealCat" type="text" placeholder="أطباق رئيسية، مشروبات..." class="w-full p-2.5 border rounded-xl" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold mb-1">سعر المنيو الحالي (اختياري)</label>
+            <input id="newMealPrice" type="number" min="0" placeholder="0 = اعتماد المقترح" class="w-full p-2.5 border rounded-xl" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">هامش الربح المستهدف (%)</label>
+            <input id="newMealMargin" type="number" min="0" max="94" step="0.1" class="w-full p-2.5 border rounded-xl" />
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold mb-1">نوع المصاريف العامة</label>
+            <select id="newMealOhMode" class="w-full p-2.5 border rounded-xl bg-white">
+              <option value="pct">نسبة %</option>
+              <option value="fixed">ثابت UZS</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">قيمة المصاريف</label>
+            <input id="newMealOhVal" type="number" min="0" step="any" class="w-full p-2.5 border rounded-xl" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">تكلفة التغليف (UZS)</label>
+            <input id="newMealPack" type="number" min="0" value="0" class="w-full p-2.5 border rounded-xl" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold mb-1">ملاحظات</label>
+          <input id="newMealNotes" type="text" class="w-full p-2.5 border rounded-xl" />
+        </div>
+        <div class="flex justify-end gap-2 pt-3">
+          <button type="button" onclick="closeModal('addMealModal')" class="px-4 py-2 rounded-xl border font-bold">إلغاء</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700">حفظ الوجبة</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= نافذة تفاصيل الوصفة والتسعير ================= -->
+  <div id="recipeModal" class="fixed inset-0 bg-black/50 z-40 hidden flex items-center justify-center p-4">
+    <div class="bg-white max-w-4xl w-full rounded-2xl p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3 mb-4">
+        <div>
+          <h3 id="recModalTitle" class="font-extrabold text-xl text-gray-900"></h3>
+          <p id="recModalCat" class="text-xs text-gray-500"></p>
+        </div>
+        <button onclick="closeModal('recipeModal')" class="text-gray-400 hover:text-gray-700 text-2xl font-bold">&times;</button>
+      </div>
+
+      <!-- ملخص التحليل العلمي للوجبة -->
+      <div id="recSummaryBox" class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border mb-5 text-xs"></div>
+
+      <!-- تعديل معطيات تسعير الوجبة -->
+      <form onsubmit="handleUpdateMeal(event)" class="bg-blue-50/50 p-4 rounded-xl border border-blue-100 mb-5">
+        <h4 class="font-bold text-xs text-blue-900 mb-3">تعديل معطيات التسعير والتغليف للوجبة</h4>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
+          <div>
+            <label class="block font-bold mb-1">سعر المنيو (شامل الضريبة)</label>
+            <input id="editMealPrice" type="number" min="0" class="w-full p-2 border rounded-lg bg-white font-bold" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">الهامش المستهدف (%)</label>
+            <input id="editMealMargin" type="number" min="0" max="94" step="0.1" class="w-full p-2 border rounded-lg bg-white" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">نوع المصاريف</label>
+            <select id="editMealOhMode" class="w-full p-2 border rounded-lg bg-white">
+              <option value="pct">نسبة %</option>
+              <option value="fixed">ثابت UZS</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold mb-1">قيمة المصاريف</label>
+            <input id="editMealOhVal" type="number" min="0" step="any" class="w-full p-2 border rounded-lg bg-white" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">تكلفة التغليف (UZS)</label>
+            <input id="editMealPack" type="number" min="0" step="any" class="w-full p-2 border rounded-lg bg-white" />
+          </div>
+        </div>
+        <div class="mt-3 flex justify-end">
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 rounded-lg text-xs">تحديث تسعير الوجبة</button>
+        </div>
+      </form>
+
+      <!-- إضافة مكون للوصفة -->
+      <form onsubmit="handleAddRecipeItem(event)" class="flex flex-wrap gap-2 mb-4 items-end">
+        <div class="flex-1 min-w-[180px]">
+          <label class="block text-xs font-bold mb-1">إضافة مادة خام للوصفة</label>
+          <select id="recMatSelect" onchange="syncRecipeUnit()" class="w-full p-2 border rounded-xl text-sm bg-white"></select>
+        </div>
+        <div class="w-28">
+          <label class="block text-xs font-bold mb-1">الكمية</label>
+          <input id="recQty" type="number" step="any" min="0.001" required placeholder="0.25" class="w-full p-2 border rounded-xl text-sm" />
+        </div>
+        <div class="w-28">
+          <label class="block text-xs font-bold mb-1">الوحدة</label>
+          <select id="recUnit" class="w-full p-2 border rounded-xl text-sm bg-white">
+            <option value="جم">جم (g)</option>
+            <option value="كجم">كجم (kg)</option>
+            <option value="مل">مل (ml)</option>
+            <option value="لتر">لتر (L)</option>
+            <option value="حبة">حبة</option>
+            <option value="علبة">علبة</option>
+          </select>
+        </div>
+        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-sm">+ إضافة</button>
+      </form>
+
+      <!-- جدول مكونات الوصفة -->
+      <div class="border rounded-xl overflow-x-auto">
+        <table class="w-full text-xs text-right">
+          <thead class="bg-gray-50 font-bold border-b">
+            <tr>
+              <th class="p-2.5">المكون</th>
+              <th class="p-2.5">الكمية</th>
+              <th class="p-2.5">نسبة الصافي</th>
+              <th class="p-2.5">التكلفة الفعالة للوحدة</th>
+              <th class="p-2.5">تكلفة المكون بالوجبة</th>
+              <th class="p-2.5 text-center">حذف</th>
+            </tr>
+          </thead>
+          <tbody id="recItemsBody" class="divide-y"></tbody>
+        </table>
       </div>
     </div>
   </div>
 
-</div>
+  <!-- ================= JavaScript Logic ================= -->
+  <script>
+    // ضع رابط Web App الخاص بك هنا كقيمة افتراضية لتسهيل الدخول من أي جهاز
+    const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbyXNRHVD_Y5y5OdiyhudakEbbDMJlE_ZJ2xza6_9MiMwbaQiyVTt4cWodwgAexk-MG4/exec';
 
-<script>
-const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbwyeGm3kgb9uExG0-gxcqBC80hTGf2N2HqtoKIkcNZpDqO8o3y63kcwuKluY3zAQ2Ss/exec';
-const $ = id => document.getElementById(id);
-const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const N = s => { const v = Number(String(s == null ? '' : s).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٫/g, '.').replace(/[,٬\s]/g, '')); return isFinite(v) ? v : 0; };
-const fmt = n => Number(n || 0).toLocaleString('en-US', {maximumFractionDigits: 0});
-const f2 = n => Number(n || 0).toLocaleString('en-US', {maximumFractionDigits: 2});
-const fq = n => Number(n || 0).toLocaleString('en-US', {maximumFractionDigits: 3});
-const cur = () => (DB && DB.S && DB.S.currency) ? DB.S.currency : 'UZS';
+    let state = {
+      apiUrl: localStorage.getItem('uzs_api_url') || DEFAULT_API_URL,
+      token: localStorage.getItem('uzs_token') || '',
+      me: null,
+      S: {},
+      materials: [],
+      meals: [],
+      activeMealId: null
+    };
 
-let TOKEN = ''; try { TOKEN = localStorage.getItem('mc_token') || ''; } catch (e) {}
-let DB = null;
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('apiUrlInput').value = state.apiUrl;
+      if (state.apiUrl && state.token) {
+        loadData();
+      }
+    });
 
-const cleanUrl = s => String(s || '').replace(/[\s'"“”‘’]/g, '');
-const validUrl = u => /^https:\/\/script\.google\.com\/(a\/[^\/]+\/)?macros\/s\/[\w-]+\/exec$/.test(u);
-function apiUrl() { let u = ''; try { u = localStorage.getItem('mc_api') || ''; } catch (e) {} return cleanUrl(u) || DEFAULT_API; }
+    function showToast(msg, isError = false) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = `fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-lg text-white font-bold text-sm transition-all ${isError ? 'bg-red-600' : 'bg-emerald-600'}`;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 3500);
+    }
 
-async function call(action, payload) {
-  const url = apiUrl();
-  if (!validUrl(url)) throw new Error('رابط السيرفر غير صحيح.');
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: {'Content-Type': 'text/plain;charset=utf-8'},
-    body: JSON.stringify({auth: {token: TOKEN}, action, payload: payload || {}})
-  });
-  const txt = await r.text();
-  let o;
-  try { o = JSON.parse(txt); } catch (e) { throw new Error('رد غير متوقع من الخادم.'); }
-  if (o.error) {
-    const a = o.error.indexOf('AUTH:') === 0;
-    const e = new Error(a ? o.error.slice(5) : o.error);
-    e.auth = a;
-    throw e;
-  }
-  return o;
-}
+    function setLoading(show) {
+      document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+    }
 
-function busy(b) { $('loader').classList.toggle('hidden', !b); }
-let toastT;
-function toast(m) {
-  const t = $('toast'); t.textContent = m; t.style.display = 'block';
-  clearTimeout(toastT); toastT = setTimeout(() => t.style.display = 'none', 3500);
-}
-function fail(e) { if (e.auth) showLogin(e.message); else toast('⚠ ' + e.message); }
-async function act(action, payload, msg, after) {
-  busy(true);
-  try { await call(action, payload); if (after) after(); toast(msg || 'تم الحفظ ✓'); await loadData(); }
-  catch (e) { fail(e); } finally { busy(false); }
-}
-function del(a, id) { if (confirm('تأكيد الحذف؟')) act(a, {id}, 'تم الحذف'); }
+    function fmt(num) {
+      return Number(num || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    }
 
-function saveApiUrl() {
-  const u = cleanUrl($('apiInput').value);
-  if (!validUrl(u)) { $('apiMsg').textContent = '✗ رابط غير صحيح'; return false; }
-  try { localStorage.setItem('mc_api', u); } catch (e) {}
-  $('apiInput').value = u; $('apiMsg').textContent = '✓ تم حفظ الرابط'; return true;
-}
-async function testApi() {
-  if ($('apiInput').value.trim() && !saveApiUrl()) return;
-  $('apiMsg').textContent = 'جارٍ الاختبار…';
-  try { const o = await call('ping'); $('apiMsg').textContent = `✓ الاتصال سليم (${o.mode}). حسابات جاهزة: ${o.ready}`; }
-  catch (e) { $('apiMsg').textContent = '✗ ' + e.message; }
-}
-function showLogin(msg) {
-  DB = null; TOKEN = ''; try { localStorage.removeItem('mc_token'); } catch (e) {}
-  $('loginModal').classList.remove('hidden'); $('lErr').textContent = msg || ''; $('apiInput').value = apiUrl();
-}
-async function doLogin() {
-  $('lErr').textContent = ''; const b = $('lBtn'); b.disabled = true; b.textContent = 'جارٍ الدخول…';
-  try {
-    const o = await call('login', {login: $('lUser').value, password: $('lPass').value});
-    TOKEN = o.token; try { localStorage.setItem('mc_token', TOKEN); } catch (e) {}
-    $('lPass').value = ''; $('loginModal').classList.add('hidden'); await loadData();
-  } catch (e) { $('lErr').textContent = e.message; }
-  finally { b.disabled = false; b.textContent = 'تسجيل الدخول'; }
-}
-async function logout() { try { await call('logout'); } catch (e) {} showLogin(''); }
+    async function callApi(action, payload = {}, silent = false) {
+      const url = document.getElementById('apiUrlInput').value.trim() || state.apiUrl;
+      if (!url) throw new Error('يرجى إدخال رابط Google Apps Script Web App URL أولاً');
+      state.apiUrl = url;
+      localStorage.setItem('uzs_api_url', url);
 
-async function loadData() {
-  if (!TOKEN) return showLogin('');
-  busy(true);
-  try {
-    DB = await call('getData');
-    $('userInfo').textContent = `${DB.me.name} • ${DB.me.role === 'owner' ? 'المالك' : 'مسؤول'}`;
-    document.querySelectorAll('.owner-only').forEach(e => e.classList.toggle('hidden', DB.me.role !== 'owner'));
-    renderAll();
-  } catch (e) {
-    if (e.auth) showLogin(e.message); else toast('⚠ ' + e.message);
-  } finally { busy(false); }
-}
+      if (!silent) setLoading(true);
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            auth: { token: state.token },
+            action: action,
+            payload: payload
+          })
+        });
+        const data = await res.json();
+        if (data.error) {
+          if (String(data.error).startsWith('AUTH:')) {
+            handleLogout(true);
+          }
+          throw new Error(data.error.replace('AUTH:', ''));
+        }
+        return data;
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    }
 
-function tbl(h, rows) {
-  return '<thead><tr>' + h.map(x => `<th>${x}</th>`).join('') + '</tr></thead><tbody>' +
-    (rows.length ? rows.map(r => '<tr' + (r.tot ? ' class="tot"' : '') + '>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('')
-      : `<tr><td colspan="${h.length}" style="text-align:center;color:#888">لا توجد بيانات</td></tr>`) + '</tbody>';
-}
-function selectKeep(id, html) { const el = $(id), v = el.value; el.innerHTML = html; if (v) el.value = v; }
+    async function testApiPing() {
+      const statusEl = document.getElementById('pingStatus');
+      statusEl.textContent = 'جاري فحص الاتصال...';
+      try {
+        const res = await callApi('ping', {}, true);
+        statusEl.textContent = `متصل بنجاح (${res.mode}) - الحسابات الجاهزة: ${res.ready}`;
+        statusEl.className = 'text-[11px] mt-1 text-emerald-600 font-bold';
+      } catch (e) {
+        statusEl.textContent = 'فشل الاتصال: ' + e.message;
+        statusEl.className = 'text-[11px] mt-1 text-red-600 font-bold';
+      }
+    }
 
-function renderAll() {
-  const meals = DB.meals || [], mats = DB.materials || [];
-  const avgMargin = meals.length ? (meals.reduce((s, m) => s + Number(m.actual_margin_pct || 0), 0) / meals.length).toFixed(1) + '%' : '—';
-  const avgFoodCost = meals.length ? (meals.reduce((s, m) => s + Number(m.food_cost_pct || 0), 0) / meals.length).toFixed(1) + '%' : '—';
-  $('kpiGrid').innerHTML = `
-    <div class="kpi-box"><div class="kpi-title">عدد الوجبات</div><div class="kpi-val">${meals.length}</div></div>
-    <div class="kpi-box"><div class="kpi-title">عدد الخامات</div><div class="kpi-val">${mats.length}</div></div>
-    <div class="kpi-box profit"><div class="kpi-title">متوسط هامش الربح</div><div class="kpi-val">${avgMargin}</div></div>
-    <div class="kpi-box warn"><div class="kpi-title">متوسط نسبة الخامات</div><div class="kpi-val">${avgFoodCost}</div></div>
-  `;
+    async function handleLogin(e) {
+      e.preventDefault();
+      try {
+        const login = document.getElementById('loginUser').value;
+        const password = document.getElementById('loginPass').value;
+        const res = await callApi('login', { login, password });
+        state.token = res.token;
+        state.me = res.me;
+        localStorage.setItem('uzs_token', res.token);
+        await loadData();
+        showToast('مرحباً بك، ' + res.me.name);
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
 
-  selectKeep('rMeal', meals.map(m => `<option value="${m.id}">${esc(m.name)} (${esc(m.category)})</option>`).join(''));
-  selectKeep('rMat', mats.map(x => `<option value="${x.id}" data-unit="${esc(x.unit)}">${esc(x.name)} (${f2(x.unit_cost)} ${cur()}/${esc(x.unit)})</option>`).join(''));
-  syncUnit();
-  renderRecipe();
+    function handleLogout(skipApi = false) {
+      if (!skipApi && state.token) {
+        callApi('logout', {}, true).catch(() => {});
+      }
+      state.token = '';
+      localStorage.removeItem('uzs_token');
+      document.getElementById('appScreen').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+    }
 
-  $('mealsTable').innerHTML = tbl(
-    ['الوجبة', 'الفئة', 'تكلفة الخامات', 'التكلفة العامة', 'إجمالي التكلفة', 'السعر المقترح', 'سعر البيع', 'هامش الربح %', 'نسبة الخامات %', 'تعديل سريع', ''],
-    meals.map(m => {
-      const ohTxt = m.overhead_mode === 'fixed' ? f2(m.overhead_cost) + ' (ثابت)' : f2(m.overhead_cost) + ` (${m.overhead_val}%)`;
-      const okMargin = Number(m.actual_margin_pct) >= Number(m.target_margin);
-      return [
-        `<b>${esc(m.name)}</b>`,
-        esc(m.category),
-        f2(m.raw_cost) + ' ' + cur(),
-        ohTxt,
-        `<b>${f2(m.total_cost)} ${cur()}</b>`,
-        `<span class="pos">${fmt(m.suggested_price)} ${cur()}</span>`,
-        m.menu_price ? fmt(m.menu_price) + ' ' + cur() : '<span class="hint">مقترح</span>',
-        `<span class="badge ${okMargin ? 'badge-ok' : 'badge-low'}">${f2(m.actual_margin_pct)}%</span>`,
-        f2(m.food_cost_pct) + '%',
-        `<div style="display:flex;gap:4px">
-          <input id="mp_${m.id}" type="text" inputmode="decimal" value="${m.menu_price || ''}" placeholder="سعر" style="width:72px;padding:4px">
-          <input id="mm_${m.id}" type="text" inputmode="decimal" value="${m.target_margin}" title="هامش الربح %" style="width:52px;padding:4px">
-          <button class="btn-secondary btn-sm" onclick="quickUpdateMeal('${m.id}')">حفظ</button>
-        </div>`,
-        `<button class="btn-danger" onclick="del('deleteMeal','${m.id}')">حذف</button>`
-      ];
-    })
-  );
+    async function loadData() {
+      try {
+        const data = await callApi('getData');
+        state.me = data.me;
+        state.S = data.S;
+        state.materials = data.materials || [];
+        state.meals = data.meals || [];
 
-  $('materialsTable').innerHTML = tbl(
-    ['الخامة', 'الفئة', 'الوحدة', 'سعر الوحدة', 'تحديث السعر', ''],
-    mats.map(x => [
-      `<b>${esc(x.name)}</b>`,
-      esc(x.category),
-      esc(x.unit),
-      `<b>${f2(x.unit_cost)} ${cur()}</b>`,
-      `<div style="display:flex;gap:4px">
-        <input id="mc_${x.id}" type="text" inputmode="decimal" value="${x.unit_cost}" style="width:90px;padding:4px">
-        <button class="btn-secondary btn-sm" onclick="updateMatCost('${x.id}')">تحديث</button>
-      </div>`,
-      `<button class="btn-danger" onclick="del('deleteMaterial','${x.id}')">حذف</button>`
-    ])
-  );
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('appScreen').classList.remove('hidden');
 
-  const S = DB.S || {};
-  $('sCur').value = S.currency || 'UZS';
-  $('sMargin').value = S.default_margin ?? 60;
-  $('sOhMode').value = S.overhead_mode || 'pct';
-  $('sOhVal').value = S.overhead_val ?? 20;
-  $('mMargin').value = S.default_margin ?? 60;
-  $('mOhMode').value = S.overhead_mode || 'pct';
-  $('mOhVal').value = S.overhead_val ?? 20;
-}
+        renderHeaderAndSettings();
+        renderKPIs();
+        renderMeals();
+        renderMaterials();
 
-function syncUnit() {
-  const opt = $('rMat').selectedOptions && $('rMat').selectedOptions[0];
-  if (opt && opt.dataset.unit) $('rUnit').value = opt.dataset.unit;
-}
+        if (state.activeMealId) {
+          renderRecipeModalContent();
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
 
-function renderRecipe() {
-  const meal = (DB.meals || []).find(m => m.id === $('rMeal').value);
-  if (!meal) {
-    $('recipeTable').innerHTML = tbl(['الخامة', 'الكمية', 'الوحدة', 'سعر الوحدة', 'تكلفة المكون', ''], []);
-    $('recipeSummary').innerHTML = '<p class="hint">أضف وجبة لبدء إضافة مكوناتها.</p>';
-    return;
-  }
-  const rows = (meal.ingredients || []).map(x => [
-    esc(x.material_name), fq(x.qty), esc(x.unit), f2(x.unit_cost) + ' ' + cur(), `<b>${f2(x.line_cost)} ${cur()}</b>`,
-    `<button class="btn-danger" onclick="del('deleteRecipeItem','${x.id}')">حذف</button>`
-  ]);
-  if (rows.length) { const t = ['إجمالي الخامات', '', '', '', `<b>${f2(meal.raw_cost)} ${cur()}</b>`, '']; t.tot = 1; rows.push(t); }
-  $('recipeTable').innerHTML = tbl(['الخامة', 'الكمية', 'الوحدة', 'سعر الوحدة', 'تكلفة المكون', ''], rows);
-  $('recipeSummary').innerHTML = `
-    <div class="summary-strip">
-      <div><span>تكلفة الخامات</span><strong>${f2(meal.raw_cost)} ${cur()}</strong></div>
-      <div><span>التكلفة العامة</span><strong>${f2(meal.overhead_cost)} ${cur()}</strong></div>
-      <div><span>إجمالي التكلفة</span><strong>${f2(meal.total_cost)} ${cur()}</strong></div>
-      <div><span>السعر المقترح (${meal.target_margin}%)</span><strong class="pos">${fmt(meal.suggested_price)} ${cur()}</strong></div>
-      <div><span>صافي ربح الوجبة</span><strong class="${meal.net_profit >= 0 ? 'pos' : 'neg'}">${f2(meal.net_profit)} ${cur()}</strong></div>
-    </div>`;
-}
+    function renderHeaderAndSettings() {
+      const S = state.S;
+      const taxLabels = {
+        vat_12: `QQS / VAT (${S.tax_pct}%)`,
+        turnover_4: `Aylanma Soliq (${S.tax_pct}%)`,
+        none: 'بدون ضريبة (0%)'
+      };
+      document.getElementById('taxBadge').textContent = `العملة: ${S.currency} | الضريبة: ${taxLabels[S.tax_mode] || S.tax_mode}`;
+      document.getElementById('userBadge').textContent = `${state.me.name} (${state.me.role === 'owner' ? 'مالك' : 'مدير'})`;
 
-function addMaterial() {
-  act('addMaterial', {
-    name: $('matName').value, category: $('matCat').value, unit: $('matUnit').value, unit_cost: $('matCost').value
-  }, 'تمت إضافة الخامة ✓', () => { $('matName').value = ''; $('matCost').value = ''; });
-}
-function updateMatCost(id) { act('updateMaterialCost', { id, unit_cost: $('mc_' + id).value }, 'تم تحديث سعر الخامة ✓'); }
-function addMeal() {
-  act('addMeal', {
-    name: $('mName').value, category: $('mCat').value, target_margin: $('mMargin').value,
-    overhead_mode: $('mOhMode').value, overhead_val: $('mOhVal').value, menu_price: $('mPrice').value
-  }, 'تمت إضافة الوجبة ✓', () => { $('mName').value = ''; $('mPrice').value = ''; });
-}
-function quickUpdateMeal(mealId) {
-  const m = (DB.meals || []).find(x => x.id === mealId);
-  if (!m) return;
-  act('updateMeal', {
-    meal_id: mealId, menu_price: $('mp_' + mealId).value, target_margin: $('mm_' + mealId).value,
-    overhead_mode: m.overhead_mode, overhead_val: m.overhead_val
-  }, 'تم تحديث تسعير الوجبة ✓');
-}
-function addRecipeItem() {
-  if (!$('rMeal').value) return toast('أضف وجبة أولاً');
-  if (!$('rMat').value) return toast('أضف خامة أولاً');
-  act('addRecipeItem', {
-    meal_id: $('rMeal').value, material_id: $('rMat').value, qty: $('rQty').value, unit: $('rUnit').value
-  }, 'تمت إضافة المكون للوصفة ✓', () => { $('rQty').value = ''; });
-}
-function saveSettings() {
-  act('saveSettings', {
-    currency: $('sCur').value, default_margin: $('sMargin').value, overhead_mode: $('sOhMode').value, overhead_val: $('sOhVal').value
-  }, 'تم حفظ الإعدادات ✓');
-}
-function changePw() {
-  act('changePassword', { old_password: $('pwOld').value, new_password: $('pwNew').value }, 'تم تغيير كلمة المرور ✓', () => { $('pwOld').value = ''; $('pwNew').value = ''; });
-}
+      // تعبئة نموذج الإعدادات
+      document.getElementById('setCurrency').value = S.currency || 'UZS';
+      document.getElementById('setMargin').value = S.default_margin ?? 60;
+      document.getElementById('setOhMode').value = S.overhead_mode || 'pct';
+      document.getElementById('setOhVal').value = S.overhead_val ?? 20;
+      document.getElementById('setTaxMode').value = S.tax_mode || 'vat_12';
+      document.getElementById('setTaxPct').value = S.tax_pct ?? 12;
+      document.getElementById('setRounding').value = S.price_rounding ?? 100;
 
-function exportCSV() {
-  const rows = DB.meals || [];
-  const cols = ['name', 'category', 'raw_cost', 'overhead_cost', 'total_cost', 'suggested_price', 'menu_price', 'actual_margin_pct', 'food_cost_pct'];
-  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const csv = '\ufeff' + [cols.join(',')].concat(rows.map(r => cols.map(k => q(r[k])).join(','))).join('\r\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv;charset=utf-8'}));
-  a.download = 'meals-pricing.csv';
-  document.body.appendChild(a); a.click(); a.remove();
-}
+      // إخفاء إعدادات المالك عن المدير
+      document.getElementById('ownerSettingsCard').style.display = state.me.role === 'owner' ? 'block' : 'none';
+    }
 
-document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('active', x === b));
-  document.querySelectorAll('.tab-sec').forEach(s => s.classList.toggle('hidden', s.id !== 'sec-' + b.dataset.t));
-});
-$('apiInput').value = apiUrl();
-if (TOKEN) { $('loginModal').classList.add('hidden'); loadData(); } else showLogin('');
-</script>
+    function renderKPIs() {
+      const meals = state.meals;
+      document.getElementById('kpiTotalMeals').textContent = meals.length;
+      document.getElementById('kpiTotalMats').textContent = state.materials.length;
+
+      if (meals.length > 0) {
+        const avgFc = meals.reduce((s, m) => s + Number(m.food_cost_pct || 0), 0) / meals.length;
+        const avgMg = meals.reduce((s, m) => s + Number(m.actual_margin_pct || 0), 0) / meals.length;
+        document.getElementById('kpiAvgFoodCost').textContent = avgFc.toFixed(1) + '%';
+        document.getElementById('kpiAvgMargin').textContent = avgMg.toFixed(1) + '%';
+      } else {
+        document.getElementById('kpiAvgFoodCost').textContent = '0%';
+        document.getElementById('kpiAvgMargin').textContent = '0%';
+      }
+    }
+
+    function switchTab(tab) {
+      ['meals', 'materials', 'settings'].forEach(t => {
+        document.getElementById('view-' + t).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById('tab-' + t);
+        if (t === tab) {
+          btn.classList.add('tab-active');
+          btn.classList.remove('text-gray-500');
+        } else {
+          btn.classList.remove('tab-active');
+          btn.classList.add('text-gray-500');
+        }
+      });
+    }
+
+    /* ================= عرض الوجبات ================= */
+    function renderMeals() {
+      const q = document.getElementById('mealSearch').value.toLowerCase().trim();
+      const grid = document.getElementById('mealsGrid');
+      const cur = state.S.currency || 'UZS';
+
+      const filtered = state.meals.filter(m =>
+        m.name.toLowerCase().includes(q) || (m.category || '').toLowerCase().includes(q)
+      );
+
+      if (!filtered.length) {
+        grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 font-bold">لا توجد وجبات مطابقة</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(m => {
+        const isHealthy = m.actual_margin_pct >= m.target_margin;
+        const marginColor = m.net_profit <= 0 ? 'text-red-600 bg-red-50' : (isHealthy ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50');
+        const activePrice = m.menu_price > 0 ? m.menu_price : m.suggested_price;
+
+        return `
+          <div class="bg-white rounded-2xl p-5 shadow-xs border border-gray-100 flex flex-col justify-between hover:shadow-md transition">
+            <div>
+              <div class="flex justify-between items-start gap-2 mb-3">
+                <div>
+                  <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600">${m.category}</span>
+                  <h4 class="font-extrabold text-lg text-gray-900 mt-1">${m.name}</h4>
+                </div>
+                <span class="text-xs font-extrabold px-2.5 py-1 rounded-lg ${marginColor}">
+                  ربح فعلي: ${m.actual_margin_pct}%
+                </span>
+              </div>
+
+              <div class="space-y-1.5 text-xs border-t border-b py-3 my-3">
+                <div class="flex justify-between">
+                  <span class="text-gray-500">تكلفة الخامات (شاملة الهدر):</span>
+                  <span class="font-bold">${fmt(m.raw_cost)} ${cur} (${m.food_cost_pct}%)</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-500">مصاريف عامة + تغليف:</span>
+                  <span class="font-bold">${fmt(m.overhead_cost + m.packaging_cost)} ${cur}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-500">التكلفة الإجمالية للوجبة:</span>
+                  <span class="font-extrabold text-gray-800">${fmt(m.total_cost)} ${cur}</span>
+                </div>
+                <div class="flex justify-between text-blue-700 pt-1 border-t border-dashed">
+                  <span class="font-bold">السعر المقترح (شامل الضريبة):</span>
+                  <span class="font-extrabold">${fmt(m.suggested_price)} ${cur}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-500">سعر المنيو المعتمد:</span>
+                  <span class="font-extrabold ${m.menu_price > 0 ? 'text-gray-900' : 'text-gray-400'}">
+                    ${m.menu_price > 0 ? fmt(m.menu_price) + ' ' + cur : 'غير محدد (يُستخدم المقترح)'}
+                  </span>
+                </div>
+              </div>
+
+              <div class="flex justify-between items-center text-xs bg-slate-50 p-2.5 rounded-xl">
+                <div>
+                  <span class="text-gray-500 block">الضريبة المستحقة:</span>
+                  <span class="font-bold text-gray-700">${fmt(m.tax_amount)} ${cur}</span>
+                </div>
+                <div class="text-left">
+                  <span class="text-gray-500 block">صافي الربح الحقيقي:</span>
+                  <span class="font-extrabold text-sm ${m.net_profit > 0 ? 'text-emerald-600' : 'text-red-600'}">${fmt(m.net_profit)} ${cur}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-2 mt-4 pt-2">
+              <button onclick="openRecipeModal('${m.id}')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-xl text-xs">
+                الوصفة والتسعير (${m.ingredients.length})
+              </button>
+              <button onclick="handleDeleteMeal('${m.id}', '${m.name}')" class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-xs">
+                حذف
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* ================= إدارة المواد الخام ================= */
+    function renderMaterials() {
+      const tbody = document.getElementById('materialsTableBody');
+      const cur = state.S.currency || 'UZS';
+
+      if (!state.materials.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-400">لا توجد مواد خام مسجلة</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = state.materials.map(m => {
+        const yPct = (m.yield_pct !== '' && m.yield_pct != null) ? Number(m.yield_pct) : 100;
+        const effCost = Number(m.unit_cost || 0) / (yPct / 100);
+        return `
+          <tr class="hover:bg-gray-50">
+            <td class="p-3.5 font-bold text-gray-900">${m.name}</td>
+            <td class="p-3.5 text-gray-600">${m.category || 'عام'}</td>
+            <td class="p-3.5 font-semibold">${m.unit}</td>
+            <td class="p-3.5">
+              <input id="cost-${m.id}" type="number" step="any" value="${m.unit_cost}" class="w-28 p-1.5 border rounded-lg text-xs font-bold" />
+              <span class="text-[11px] text-gray-400">${cur}</span>
+            </td>
+            <td class="p-3.5">
+              <input id="yield-${m.id}" type="number" step="0.1" min="1" max="100" value="${yPct}" class="w-20 p-1.5 border rounded-lg text-xs font-bold" /> %
+            </td>
+            <td class="p-3.5 font-extrabold text-blue-700">${fmt(effCost)} ${cur}</td>
+            <td class="p-3.5 text-center space-x-1 space-x-reverse">
+              <button onclick="handleUpdateMaterial('${m.id}')" class="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold px-2.5 py-1 rounded-lg text-xs">حفظ</button>
+              <button onclick="handleDeleteMaterial('${m.id}')" class="bg-red-50 text-red-600 hover:bg-red-100 font-bold px-2.5 py-1 rounded-lg text-xs">حذف</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function handleAddMaterial(e) {
+      e.preventDefault();
+      try {
+        await callApi('addMaterial', {
+          name: document.getElementById('matName').value,
+          category: document.getElementById('matCat').value,
+          unit: document.getElementById('matUnit').value,
+          unit_cost: document.getElementById('matCost').value,
+          yield_pct: document.getElementById('matYield').value
+        });
+        e.target.reset();
+        document.getElementById('matYield').value = 100;
+        showToast('تمت إضافة المادة الخام بنجاح');
+        await loadData();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function handleUpdateMaterial(id) {
+      try {
+        await callApi('updateMaterial', {
+          id: id,
+          unit_cost: document.getElementById('cost-' + id).value,
+          yield_pct: document.getElementById('yield-' + id).value
+        });
+        showToast('تم تحديث سعر ونسبة الصافي للخامة');
+        await loadData();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function handleDeleteMaterial(id) {
+      if (!confirm('هل أنت متأكد من حذف هذه الخامة؟')) return;
+      try {
+        await callApi('deleteMaterial', { id });
+        showToast('تم حذف الخامة');
+        await loadData();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    /* ================= إدارة الوجبات والوصفات ================= */
+    function openAddMealModal() {
+      document.getElementById('newMealMargin').value = state.S.default_margin ?? 60;
+      document.getElementById('newMealOhMode').value = state.S.overhead_mode || 'pct';
+      document.getElementById('newMealOhVal').value = state.S.overhead_val ?? 20;
+      document.getElementById('addMealModal').classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+      if (id === 'recipeModal') state.activeMealId = null;
+    }
+
+    async function handleAddMeal(e) {
+      e.preventDefault();
+      try {
+        await callApi('addMeal', {
+          name: document.getElementById('newMealName').value,
+          category: document.getElementById('newMealCat').value,
+          menu_price: document.getElementById('newMealPrice').value,
+          target_margin: document.getElementById('newMealMargin').value,
+          overhead_mode: document.getElementById('newMealOhMode').value,
+          overhead_val: document.getElementById('newMealOhVal').value,
+          packaging_cost: document.getElementById('newMealPack').value,
+          notes: document.getElementById('newMealNotes').value
+        });
+        e.target.reset();
+        closeModal('addMealModal');
+        showToast('تمت إضافة الوجبة بنجاح');
+        await loadData();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function handleDeleteMeal(id, name) {
+      if (!confirm(`حذف الوجبة "${name}" وكافة مكوناتها نهائياً؟`)) return;
+      try {
+        await callApi('deleteMeal', { id });
+        showToast('تم حذف الوجبة');
+        await loadData();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    function openRecipeModal(mealId) {
+      state.activeMealId = mealId;
+      renderRecipeModalContent();
+      document.getElementById('recipeModal').classList.remove('hidden');
+    }
+
+    function renderRecipeModalContent() {
+      const m = state.meals.find(x => x.id === state.activeMealId);
+      if (!m) return;
+      const cur = state.S.currency || 'UZS';
+
+      document.getElementById('recModalTitle').textContent = m.name;
+      document.getElementById('recModalCat').textContent = `التصنيف: ${m.category} | ${m.notes || ''}`;
+
+      document.getElementById('editMealPrice').value = m.menu_price;
+      document.getElementById('editMealMargin').value = m.target_margin;
+      document.getElementById('editMealOhMode').value = m.overhead_mode;
+      document.getElementById('editMealOhVal').value = m.overhead_val;
+      document.getElementById('editMealPack').value = m.packaging_cost;
+
+      document.getElementById('recSummaryBox').innerHTML = `
+        <div><span class="text-gray-500 block">التكلفة الإجمالية:</span><strong class="text-sm text-gray-900">${fmt(m.total_cost)} ${cur}</strong></div>
+        <div><span class="text-gray-500 block">المقترح شامل الضريبة:</span><strong class="text-sm text-blue-700">${fmt(m.suggested_price)} ${cur}</strong></div>
+        <div><span class="text-gray-500 block">الضريبة (${m.tax_pct}%):</span><strong class="text-sm text-amber-700">${fmt(m.tax_amount)} ${cur}</strong></div>
+        <div><span class="text-gray-500 block">صافي الربح (${m.actual_margin_pct}%):</span><strong class="text-sm ${m.net_profit > 0 ? 'text-emerald-600' : 'text-red-600'}">${fmt(m.net_profit)} ${cur}</strong></div>
+      `;
+
+      // قائمة المواد الخام للاختيار
+      const sel = document.getElementById('recMatSelect');
+      sel.innerHTML = state.materials.map(mat =>
+        `<option value="${mat.id}" data-unit="${mat.unit}">${mat.name} (${fmt(mat.unit_cost)} ${cur}/${mat.unit})</option>`
+      ).join('');
+      syncRecipeUnit();
+
+      // جدول المكونات
+      const tbody = document.getElementById('recItemsBody');
+      if (!m.ingredients.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-gray-400">لم يتم إضافة مكونات لهذه الوجبة بعد</td></tr>`;
+      } else {
+        tbody.innerHTML = m.ingredients.map(ing => `
+          <tr>
+            <td class="p-2.5 font-bold">${ing.material_name}</td>
+            <td class="p-2.5">${ing.qty} ${ing.unit}</td>
+            <td class="p-2.5">${ing.yield_pct}%</td>
+            <td class="p-2.5">${fmt(ing.effective_unit_cost)} ${cur}/${ing.material_unit}</td>
+            <td class="p-2.5 font-extrabold text-gray-900">${fmt(ing.line_cost)} ${cur}</td>
+            <td class="p-2.5 text-center">
+              <button onclick="handleDeleteRecipeItem('${ing.id}')" class="text-red-600 hover:underline font-bold">حذف</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function syncRecipeUnit() {
+      const sel = document.getElementById('recMatSelect');
+      const opt = sel.options[sel.selectedIndex];
+      if (!opt) return;
+      const matUnit = opt.getAttribute('data-unit');
+      const unitSel = document.getElementById('recUnit');
+      if (matUnit === 'كجم') unitSel.value = 'جم';
+      else if (matUnit === 'لتر') unitSel.value = 'مل';
+      else unitSel.value = matUnit;
+    }
+
+    async function handleUpdateMeal(e) {
+      e.preventDefault();
+      try {
+        await callApi('updateMeal', {
+          meal_id: state.activeMealId,
+          menu_price: document.getElementById('editMealPrice').value,
+          target_margin: document.getElementById('editMealMargin').value,
+          overhead_mode: document.getElementById('editMealOhMode').value,
+          overhead_val: document.getElementById('editMealOhVal').value,
+          packaging_cost: document.getElementById('editMealPack').value
+        });
+        showToast('تم تحديث تسعير الوجبة');
+        await loadData();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function handleAddRecipeItem(e) {
+      e.preventDefault();
+      try {
+        await callApi('addRecipeItem', {
+          meal_id: state.activeMealId,
+          material_id: document.getElementById('recMatSelect').value,
+          qty: document.getElementById('recQty').value,
+          unit: document.getElementById('recUnit').value
+        });
+        document.getElementById('recQty').value = '';
+        showToast('تمت إضافة المكون للوصفة');
+        await loadData();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function handleDeleteRecipeItem(id) {
+      try {
+        await callApi('deleteRecipeItem', { id });
+        showToast('تم حذف المكون');
+        await loadData();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    /* ================= الإعدادات ================= */
+    function onTaxModeChange() {
+      const mode = document.getElementById('setTaxMode').value;
+      const pctInput = document.getElementById('setTaxPct');
+      if (mode === 'vat_12') pctInput.value = 12;
+      else if (mode === 'turnover_4') pctInput.value = 4;
+      else pctInput.value = 0;
+    }
+
+    async function handleSaveSettings(e) {
+      e.preventDefault();
+      try {
+        await callApi('saveSettings', {
+          currency: document.getElementById('setCurrency').value,
+          default_margin: document.getElementById('setMargin').value,
+          overhead_mode: document.getElementById('setOhMode').value,
+          overhead_val: document.getElementById('setOhVal').value,
+          tax_mode: document.getElementById('setTaxMode').value,
+          tax_pct: document.getElementById('setTaxPct').value,
+          price_rounding: document.getElementById('setRounding').value
+        });
+        showToast('تم حفظ إعدادات النظام الضريبي والتسعير');
+        await loadData();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function handleChangePassword(e) {
+      e.preventDefault();
+      try {
+        await callApi('changePassword', {
+          old_password: document.getElementById('oldPass').value,
+          new_password: document.getElementById('newPass').value
+        });
+        e.target.reset();
+        showToast('تم تغيير كلمة المرور بنجاح');
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+  </script>
 </body>
 </html>
