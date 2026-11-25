@@ -1,444 +1,779 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة تكاليف وتسعير المطاعم - كايرو كافي (UZS)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
-        .loader { border-top-color: #2563eb; animation: spinner 1s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام إدارة وتسعير الوجبات | Restaurant Pricing ERP</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
+    .tab-active { border-bottom: 3px solid #2563eb; color: #1d4ed8; font-weight: 700; }
+    .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+    .loader { border-top-color: #2563eb; animation: spinner 0.8s linear infinite; }
+    @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
 </head>
-<body class="text-slate-800">
+<body class="text-slate-800 antialiased">
 
-    <!-- شاشة التحميل -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50">
-        <div class="bg-white p-6 rounded-xl shadow-xl flex flex-col items-center">
-            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-3"></div>
-            <p class="font-semibold text-slate-700">جاري المزامنة مع قاعدة البيانات...</p>
+  <!-- إشعارات التنبيه (Toast Notification) -->
+  <div id="toast" class="fixed bottom-5 left-5 z-50 hidden transform transition-all duration-300">
+    <div id="toastContent" class="px-5 py-3 rounded-xl shadow-lg text-white font-semibold text-sm flex items-center gap-2"></div>
+  </div>
+
+  <!-- شاشة التحميل العامة -->
+  <div id="globalLoader" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 hidden flex items-center justify-center">
+    <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center gap-3">
+      <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-10 w-10"></div>
+      <p class="text-sm font-bold text-slate-700">جاري مزامنة البيانات مع السحابة...</p>
+    </div>
+  </div>
+
+  <!-- ==================== 1. شاشة تسجيل الدخول ==================== -->
+  <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
+    <div class="glass-card w-full max-w-md rounded-2xl shadow-2xl p-8 border border-slate-200/60">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-600/30 text-2xl font-extrabold">
+          UZS
         </div>
-    </div>
+        <h1 class="text-2xl font-extrabold text-slate-900">نظام تسعير الوجبات</h1>
+        <p class="text-sm text-slate-500 mt-1">بوابة الإدارة المالية وهندسة قوائم الطعام</p>
+      </div>
 
-    <!-- 1. شاشة تسجيل الدخول -->
-    <div id="loginSection" class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full border border-slate-100">
-            <div class="text-center mb-6">
-                <span class="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full">كايرو كافي  🇺🇿</span>
-                <h1 class="text-2xl font-bold mt-3 text-slate-900">نظام تسعير وهندسة القوائم</h1>
-                <p class="text-sm text-slate-500 mt-1">إدارة الخامات، الهدر، الضرائب (4%)، وتطبيقات التوصيل</p>
-            </div>
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold mb-1">اسم المستخدم</label>
-                    <input type="text" id="username" required placeholder="admin أو chef" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold mb-1">كلمة المرور</label>
-                    <input type="password" id="password" required placeholder="1234" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition">تسجيل الدخول</button>
-            </form>
+      <form id="loginForm" class="space-y-5">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">رابط Google Apps Script Web App URL</label>
+          <input type="url" id="apiUrlInput" required placeholder="https://script.google.com/macros/s/AKfycby0eqA-BjL5XMQpWsrxOzz83Kfr0cks32PhVsky2C2qP023fE1fkuRBC3861uowe_r-/exec"
+            class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dir-ltr text-left" />
+          <p class="text-[11px] text-slate-400 mt-1">يُحفظ الرابط تلقائياً في متصفحك لسهولة الدخول لاحقاً.</p>
         </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">رمز الدخول (Access Token)</label>
+          <input type="password" id="tokenInput" required placeholder="أدخل رمز الدخول الخاص بك..."
+            class="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dir-ltr text-left" />
+        </div>
+
+        <button type="submit"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-md shadow-blue-600/20 transition cursor-pointer">
+          تسجيل الدخول للنظام
+        </button>
+      </form>
+
+      <div class="mt-6 pt-5 border-t border-slate-100 text-center">
+        <p class="text-xs text-slate-400">العملة المعتمدة: السوم الأوزبكي (UZS) • محمي بنظام الصلاحيات RBAC</p>
+      </div>
     </div>
+  </div>
 
-    <!-- 2. لوحة التحكم الرئيسية -->
-    <div id="appSection" class="hidden">
-        <!-- الشريط العلوي -->
-        <nav class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shadow-md">
-            <div class="flex items-center gap-3">
-                <span class="text-xl font-bold">🍽️ RestoCost UZ</span>
-                <span id="userBadge" class="bg-slate-700 text-xs px-3 py-1 rounded-full"></span>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="switchTab('dashboard')" class="tab-btn px-3 py-1.5 rounded-lg text-sm bg-blue-600">لوحة الهندسة والأسعار</button>
-                <button onclick="switchTab('recipes')" class="tab-btn px-3 py-1.5 rounded-lg text-sm hover:bg-slate-800">بناء الوصفات</button>
-                <button onclick="switchTab('ingredients')" class="tab-btn px-3 py-1.5 rounded-lg text-sm hover:bg-slate-800">المواد الخام والموسمية</button>
-                <button id="settingsTabBtn" onclick="switchTab('settings')" class="tab-btn px-3 py-1.5 rounded-lg text-sm hover:bg-slate-800">الضرائب والإعدادات</button>
-                <button onclick="logout()" class="px-3 py-1.5 rounded-lg text-sm bg-red-600/80 hover:bg-red-600">خروج</button>
-            </div>
-        </nav>
+  <!-- ==================== 2. لوحة التحكم الرئيسية ==================== -->
+  <div id="dashboardScreen" class="hidden min-h-screen flex flex-col">
+    
+    <!-- الشريط العلوي (Navbar) -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center font-extrabold text-sm">
+            UZS
+          </div>
+          <div>
+            <h1 class="text-base font-extrabold text-slate-900 leading-tight">نظام تسعير وإدارة الوجبات</h1>
+            <span class="text-[11px] text-slate-500">حلول نظم تسعير المطاعم</span>
+          </div>
+        </div>
 
-        <main class="max-w-7xl mx-auto p-6">
-            
-            <!-- التبويب الأول: لوحة هندسة القوائم والأسعار -->
-            <div id="tab-dashboard" class="tab-content space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="bg-white p-5 rounded-xl shadow-sm border">
-                        <p class="text-xs text-slate-500">ضريبة المبيعات المطبقة (أوزبكستان)</p>
-                        <p id="statTax" class="text-2xl font-bold text-blue-600 mt-1">4%</p>
-                    </div>
-                    <div class="bg-white p-5 rounded-xl shadow-sm border">
-                        <p class="text-xs text-slate-500">عدد الوجبات المسعرة</p>
-                        <p id="statRecipes" class="text-2xl font-bold text-slate-800 mt-1">0</p>
-                    </div>
-                    <div class="bg-white p-5 rounded-xl shadow-sm border">
-                        <p class="text-xs text-slate-500">تنبيهات تضخم الخامات (&gt;10%)</p>
-                        <p id="statInflation" class="text-2xl font-bold text-red-600 mt-1">0</p>
-                    </div>
-                    <div class="bg-white p-5 rounded-xl shadow-sm border">
-                        <p class="text-xs text-slate-500">العملة المعتمدة</p>
-                        <p class="text-2xl font-bold text-emerald-600 mt-1">UZS (سوم)</p>
-                    </div>
-                </div>
+        <div class="flex items-center gap-4">
+          <button onclick="syncAllData()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-lg transition cursor-pointer flex items-center gap-1.5">
+            <span>↻</span> تحديث البيانات
+          </button>
+          <div class="hidden sm:flex flex-col text-left border-r pr-4 border-slate-200">
+            <span id="userDisplayName" class="text-xs font-bold text-slate-800">المستخدم</span>
+            <span id="userDisplayRole" class="text-[11px] font-semibold text-blue-600">الدور</span>
+          </div>
+          <button onclick="logout()" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 font-bold px-3 py-2 rounded-lg transition cursor-pointer">
+            خروج
+          </button>
+        </div>
+      </div>
 
-                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                    <div class="p-4 border-b flex justify-between items-center">
-                        <h2 class="font-bold text-lg">مصفوفة تسعير الوجبات وهندسة القوائم</h2>
-                        <button onclick="loadData()" class="text-sm text-blue-600 hover:underline">🔄 تحديث البيانات</button>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-right">
-                            <thead class="bg-slate-50 text-slate-600 border-b">
-                                <tr>
-                                    <th class="p-3">اسم الوجبة</th>
-                                    <th class="p-3">تكلفة الخامات</th>
-                                    <th class="p-3">التكلفة الكلية (+تشغيل)</th>
-                                    <th class="p-3">سعر الصالة (شامل 4%)</th>
-                                    <th class="p-3">سعر التوصيل (Yandex/Uzum)</th>
-                                    <th class="p-3">صافي الربح</th>
-                                    <th class="p-3">تصنيف الهندسة</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recipesTableBody" class="divide-y"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+      <!-- شريط التبويبات (Tabs) -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-6 overflow-x-auto text-sm">
+        <button onclick="switchTab('pricing')" id="tab-pricing" class="py-3 px-1 whitespace-nowrap tab-active cursor-pointer">
+          📊 ملخص التسعير والأرباح
+        </button>
+        <button onclick="switchTab('ingredients')" id="tab-ingredients" class="py-3 px-1 whitespace-nowrap text-slate-500 hover:text-slate-800 cursor-pointer">
+          🥩 الخامات والمكونات
+        </button>
+        <button onclick="switchTab('recipes')" id="tab-recipes" class="py-3 px-1 whitespace-nowrap text-slate-500 hover:text-slate-800 cursor-pointer">
+          🍲 هندسة الوصفات
+        </button>
+        <button onclick="switchTab('parameters')" id="tab-parameters" class="py-3 px-1 whitespace-nowrap text-slate-500 hover:text-slate-800 cursor-pointer">
+          ⚙️ المعاملات المالية
+        </button>
+        <button onclick="switchTab('users')" id="tab-users" data-perm="MANAGE_USERS" class="py-3 px-1 whitespace-nowrap text-slate-500 hover:text-slate-800 cursor-pointer hidden">
+          🔐 المستخدمين والصلاحيات
+        </button>
+      </div>
+    </header>
 
-            <!-- التبويب الثاني: بناء الوصفات متعددة المكونات -->
-            <div id="tab-recipes" class="tab-content hidden space-y-6">
-                <div class="bg-white p-6 rounded-xl shadow-sm border">
-                    <h2 class="font-bold text-lg mb-4">إنشاء / تعديل وصفة معيارية</h2>
-                    <form id="recipeForm" class="space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold mb-1">اسم الوجبة (مثال: Plov / شاشليك)</label>
-                                <input type="text" id="recName" required class="w-full p-2 border rounded-lg">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold mb-1">التصنيف</label>
-                                <select id="recCategory" class="w-full p-2 border rounded-lg">
-                                    <option value="أطباق رئيسية">أطباق رئيسية</option>
-                                    <option value="مشويات">مشويات</option>
-                                    <option value="مقبلات وسلطات">مقبلات وسلطات</option>
-                                    <option value="مشروبات">مشروبات</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold mb-1">نسبة تكلفة الطعام المستهدفة (%)</label>
-                                <input type="number" id="recTargetFC" value="30" required class="w-full p-2 border rounded-lg">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold mb-1">تكلفة التغليف للتوصيل (UZS)</label>
-                                <input type="number" id="recPackaging" value="3000" class="w-full p-2 border rounded-lg">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold mb-1">عمولة تطبيق التوصيل (%)</label>
-                                <input type="number" id="recDeliveryComm" value="20" class="w-full p-2 border rounded-lg">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold mb-1">حجم المبيعات الشهري المتوقع (طبق)</label>
-                                <input type="number" id="recSalesVol" value="150" class="w-full p-2 border rounded-lg">
-                            </div>
-                        </div>
+    <!-- المحتوى الرئيسي -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-                        <!-- مكونات الوجبة -->
-                        <div class="border-t pt-4">
-                            <div class="flex justify-between items-center mb-2">
-                                <h3 class="font-bold text-sm">مكونات الوجبة (بالجرام أو الملليلتر)</h3>
-                                <button type="button" onclick="addIngredientRow()" class="bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg">+ إضافة مكون</button>
-                            </div>
-                            <div id="recipeItemsContainer" class="space-y-2"></div>
-                        </div>
+      <!-- بطاقات الإحصائيات السريعة (KPIs) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+          <p class="text-xs text-slate-500 font-semibold">إجمالي الوجبات المُسعّرة</p>
+          <p id="kpiMealsCount" class="text-2xl font-extrabold text-slate-900 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+          <p class="text-xs text-slate-500 font-semibold">عدد الخامات المسجلة</p>
+          <p id="kpiIngredientsCount" class="text-2xl font-extrabold text-slate-900 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+          <p class="text-xs text-slate-500 font-semibold">تنبيهات تضخم الأسعار</p>
+          <p id="kpiInflationCount" class="text-2xl font-extrabold text-amber-600 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+          <p class="text-xs text-slate-500 font-semibold">نسبة تكلفة الطعام المستهدفة</p>
+          <p id="kpiTargetFoodCost" class="text-2xl font-extrabold text-blue-600 mt-1">0%</p>
+        </div>
+      </div>
 
-                        <button type="submit" class="bg-blue-600 text-white font-bold px-6 py-2.5 rounded-lg hover:bg-blue-700">حفظ الوصفة وحساب التسعير الذكي</button>
-                    </form>
-                </div>
-            </div>
+      <!-- ==================== التبويب 1: ملخص التسعير ==================== -->
+      <section id="view-pricing" class="space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">جدول التسعير التلقائي وصافي الأرباح (UZS)</h2>
+            <p class="text-xs text-slate-500">يتم احتساب الأسعار المقترحة تلقائياً لتغطية الخامات، التغليف، المصاريف، الضرائب، وعمولات التوصيل.</p>
+          </div>
+          <button onclick="recalculateAll()" data-perm="RECALCULATE_PRICING"
+            class="hidden bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition cursor-pointer">
+            ⚡ إعادة احتساب تسعير كافة الوجبات
+          </button>
+        </div>
 
-            <!-- التبويب الثالث: المواد الخام وتحويل الوحدات -->
-            <div id="tab-ingredients" class="tab-content hidden space-y-6">
-                <div class="bg-white p-6 rounded-xl shadow-sm border">
-                    <h2 class="font-bold text-lg mb-4">إضافة أو تحديث سعر مادة خام (موسمية)</h2>
-                    <form id="ingredientForm" class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
-                        <input type="hidden" id="ingId">
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold mb-1">اسم المادة الخام</label>
-                            <input type="text" id="ingName" required placeholder="مثال: لحم بقري / أرز ليزر" class="w-full p-2 border rounded-lg">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold mb-1">وحدة الشراء</label>
-                            <select id="ingUnit" onchange="updateConvFactor()" class="w-full p-2 border rounded-lg">
-                                <option value="كيلوجرام (1000 جرام)">كيلوجرام</option>
-                                <option value="لتر (1000 مل)">لتر</option>
-                                <option value="حبة / قطعة (1)">حبة / قطعة</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold mb-1">سعر الشراء (UZS)</label>
-                            <input type="number" id="ingPrice" required placeholder="95000" class="w-full p-2 border rounded-lg">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold mb-1">نسبة الهدر (%)</label>
-                            <input type="number" id="ingWaste" value="15" required class="w-full p-2 border rounded-lg">
-                        </div>
-                        <input type="hidden" id="ingConv" value="1000">
-                        <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">حفظ المادة</button>
-                    </form>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-                    <table class="w-full text-sm text-right">
-                        <thead class="bg-slate-50 border-b">
-                            <tr>
-                                <th class="p-3">المادة الخام</th>
-                                <th class="p-3">سعر الشراء (UZS)</th>
-                                <th class="p-3">نسبة الهدر</th>
-                                <th class="p-3">التكلفة الصافية للجرام/المل</th>
-                                <th class="p-3">مؤشر التضخم</th>
-                                <th class="p-3">إجراء</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ingredientsTableBody" class="divide-y"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- التبويب الرابع: الإعدادات والضرائب (للمدير فقط) -->
-            <div id="tab-settings" class="tab-content hidden">
-                <div class="bg-white p-6 rounded-xl shadow-sm border max-w-xl">
-                    <h2 class="font-bold text-lg mb-4">إعدادات الضرائب والتشغيل (أوزبكستان)</h2>
-                    <form id="settingsForm" class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-bold mb-1">نسبة الضريبة (Turnover Tax 4% أو VAT 12%)</label>
-                            <input type="number" step="0.01" id="setTax" class="w-full p-2 border rounded-lg">
-                            <p class="text-xs text-slate-500 mt-1">أدخل 0.04 لضريبة المبيعات المبسطة 4% في أوزبكستان.</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-1">نسبة المصاريف التشغيلية الثابتة (إيجار، رواتب، غاز)</label>
-                            <input type="number" step="0.01" id="setOverhead" class="w-full p-2 border rounded-lg">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-1">وحدة التقريب النفسي للعملة (UZS)</label>
-                            <input type="number" id="setRounding" class="w-full p-2 border rounded-lg">
-                        </div>
-                        <button type="submit" class="bg-slate-900 text-white font-bold px-6 py-2 rounded-lg">حفظ وتحديث كافة الأسعار</button>
-                    </form>
-                </div>
-            </div>
-
-        </main>
-    </div>
-
-    <script>
-        // ضع رابط Google Apps Script Web App هنا
-        const API_URL = "https://script.google.com/macros/s/AKfycbweHp6tmeCsxCSV0PNI-t-AO_BgEOcBFmWGfWZSFOOtH7g4haAr1EonsYuZ5lHVwbAP/exec";
-        
-        let globalData = { ingredients: [], recipes: [], settings: {} };
-        let currentUser = null;
-
-        function toggleLoader(show) {
-            document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
-        }
-
-        async function apiCall(action, payload = {}) {
-            toggleLoader(true);
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action, ...payload })
-                });
-                const json = await res.json();
-                toggleLoader(false);
-                if (json.status === 'error') throw new Error(json.message);
-                return json.data;
-            } catch (err) {
-                toggleLoader(false);
-                alert("خطأ في الاتصال: " + err.message);
-                return null;
-            }
-        }
-
-        // تسجيل الدخول والصلاحيات
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const res = await apiCall('login', { username, password });
-            
-            if (res && res.authenticated) {
-                currentUser = res;
-                document.getElementById('loginSection').classList.add('hidden');
-                document.getElementById('appSection').classList.remove('hidden');
-                document.getElementById('userBadge').innerText = `${res.fullName} (${res.role})`;
-                
-                // إخفاء إعدادات الضرائب عن الشيف (صلاحيات)
-                if (res.role !== 'Admin') {
-                    document.getElementById('settingsTabBtn').classList.add('hidden');
-                }
-                loadData();
-            } else {
-                alert(res?.message || 'فشل تسجيل الدخول');
-            }
-        });
-
-        function logout() {
-            location.reload();
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById('tab-' + tabId).classList.remove('hidden');
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('bg-blue-600'));
-            event.target.classList.add('bg-blue-600');
-        }
-
-        async function loadData() {
-            const data = await apiCall('getDashboardData');
-            if (!data) return;
-            globalData = data;
-            renderDashboard();
-            renderIngredients();
-            populateSettings();
-            if (document.getElementById('recipeItemsContainer').children.length === 0) addIngredientRow();
-        }
-
-        function renderDashboard() {
-            const tax = (globalData.settings.TAX_RATE || 0.04) * 100;
-            document.getElementById('statTax').innerText = tax + '%';
-            document.getElementById('statRecipes').innerText = globalData.recipes.length;
-            
-            const inflationCount = globalData.ingredients.filter(i => i.Inflation_Alert.includes('تحذير')).length;
-            document.getElementById('statInflation').innerText = inflationCount;
-
-            const tbody = document.getElementById('recipesTableBody');
-            tbody.innerHTML = globalData.recipes.map(r => `
-                <tr class="hover:bg-slate-50">
-                    <td class="p-3 font-bold">${r.Dish_Name}</td>
-                    <td class="p-3">${Number(r.Raw_Cost_UZS).toLocaleString()} UZS</td>
-                    <td class="p-3">${Number(r.Total_DineIn_Cost_UZS).toLocaleString()} UZS</td>
-                    <td class="p-3 font-bold text-blue-600">${Number(r.Suggested_DineIn_Price_UZS).toLocaleString()} UZS</td>
-                    <td class="p-3 font-bold text-purple-600">${Number(r.Suggested_Delivery_Price_UZS).toLocaleString()} UZS</td>
-                    <td class="p-3 font-bold text-emerald-600">${Number(r.Net_Profit_DineIn_UZS).toLocaleString()} UZS</td>
-                    <td class="p-3"><span class="px-2 py-1 rounded-full text-xs bg-slate-100 font-semibold">${r.Menu_Class}</span></td>
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+          <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs">
+              <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                <tr>
+                  <th class="p-3.5">كود الوجبة</th>
+                  <th class="p-3.5">اسم الوجبة</th>
+                  <th class="p-3.5">تكلفة الخامات</th>
+                  <th class="p-3.5">التغليف</th>
+                  <th class="p-3.5">تكلفة الصالة</th>
+                  <th class="p-3.5">تكلفة التوصيل</th>
+                  <th class="p-3.5 bg-blue-50/70 text-blue-900">سعر الصالة المقترح</th>
+                  <th class="p-3.5 bg-indigo-50/70 text-indigo-900">سعر التوصيل المقترح</th>
+                  <th class="p-3.5 text-emerald-700">ربح الصالة</th>
+                  <th class="p-3.5 text-emerald-700">ربح التوصيل</th>
                 </tr>
-            `).join('');
-        }
+              </thead>
+              <tbody id="pricingTableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
-        function renderIngredients() {
-            const tbody = document.getElementById('ingredientsTableBody');
-            tbody.innerHTML = globalData.ingredients.map(i => `
-                <tr class="hover:bg-slate-50">
-                    <td class="p-3 font-bold">${i.Name}</td>
-                    <td class="p-3">${Number(i.Purchase_Price_UZS).toLocaleString()} UZS / ${i.Purchase_Unit}</td>
-                    <td class="p-3">${i.Waste_Percent}%</td>
-                    <td class="p-3 font-semibold text-blue-700">${Number(i.Net_Unit_Cost_UZS).toFixed(2)} UZS</td>
-                    <td class="p-3 ${i.Inflation_Alert.includes('تحذير') ? 'text-red-600 font-bold' : 'text-emerald-600'}">${i.Inflation_Alert}</td>
-                    <td class="p-3">
-                        <button onclick="editIngredient('${i.ID}', '${i.Name}', ${i.Purchase_Price_UZS}, ${i.Waste_Percent}, ${i.Conversion_Factor})" class="text-xs bg-slate-200 px-2 py-1 rounded hover:bg-slate-300">تحديث السعر</button>
-                    </td>
+      <!-- ==================== التبويب 2: الخامات والمكونات ==================== -->
+      <section id="view-ingredients" class="hidden space-y-6">
+        <!-- نموذج إضافة/تحديث مكون (يظهر فقط لمن يملك صلاحية EDIT_INGREDIENTS) -->
+        <div data-perm="EDIT_INGREDIENTS" class="hidden bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+          <h3 class="text-sm font-bold text-slate-900 mb-4">➕ إضافة أو تحديث خامة / مكون</h3>
+          <form id="ingredientForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">كود المكون (مثال: ING-001)</label>
+              <input type="text" name="code" required placeholder="ING-001" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">اسم المكون</label>
+              <input type="text" name="name" required placeholder="لحم بقري مفروم" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">وحدة الشراء</label>
+              <select name="unit" class="w-full p-2.5 border border-slate-300 rounded-xl bg-white">
+                <option value="كجم">كجم (Kg)</option>
+                <option value="لتر">لتر (Liter)</option>
+                <option value="قطعة">قطعة (Piece)</option>
+                <option value="علبة">علبة (Box)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">معامل التحويل (للجرام/مل)</label>
+              <input type="number" step="any" name="conversionFactor" value="1000" required class="w-full p-2.5 border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">السعر السابق (UZS)</label>
+              <input type="number" step="any" name="prevPrice" value="0" required class="w-full p-2.5 border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">السعر الحالي (UZS)</label>
+              <input type="number" step="any" name="currentPrice" required placeholder="95000" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">نسبة الهدر (مثال: 0.05 لـ 5%)</label>
+              <input type="number" step="0.01" min="0" max="0.99" name="wastePct" value="0" required class="w-full p-2.5 border border-slate-300 rounded-xl" />
+            </div>
+            <div class="flex items-end">
+              <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition cursor-pointer">
+                حفظ المكون وتحديث التسعير
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- جدول الخامات -->
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+          <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs">
+              <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                <tr>
+                  <th class="p-3.5">الكود</th>
+                  <th class="p-3.5">اسم المكون</th>
+                  <th class="p-3.5">الوحدة</th>
+                  <th class="p-3.5">السعر السابق</th>
+                  <th class="p-3.5">السعر الحالي</th>
+                  <th class="p-3.5">حالة التضخم</th>
+                  <th class="p-3.5">الهدر</th>
+                  <th class="p-3.5">معامل التحويل</th>
+                  <th class="p-3.5 bg-blue-50/60 text-blue-900">التكلفة الفعلية للوحدة</th>
                 </tr>
-            `).join('');
+              </thead>
+              <tbody id="ingredientsTableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== التبويب 3: هندسة الوصفات ==================== -->
+      <section id="view-recipes" class="hidden space-y-6">
+        <!-- نموذج إضافة مكون لوجبة -->
+        <div data-perm="EDIT_RECIPES" class="hidden bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+          <h3 class="text-sm font-bold text-slate-900 mb-4">🍲 إضافة مكون إلى وصفة وجبة</h3>
+          <form id="recipeForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">كود الوجبة (مثال: MEAL-01)</label>
+              <input type="text" name="mealCode" required placeholder="MEAL-01" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">اسم الوجبة</label>
+              <input type="text" name="mealName" required placeholder="برجر لحم كلاسيك" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">تصنيف المكون</label>
+              <select name="componentType" class="w-full p-2.5 border border-slate-300 rounded-xl bg-white">
+                <option value="خامات">خامات أساسية</option>
+                <option value="صلصات وتوابل">صلصات وتوابل</option>
+                <option value="تغليف">تغليف (يُحسب للتوصيل فقط)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">اختر المكون من المخزن</label>
+              <select id="recipeIngredientSelect" name="ingredientCode" required class="w-full p-2.5 border border-slate-300 rounded-xl bg-white">
+                <option value="">-- اختر المكون --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">الكمية الصافية (بالجرام / مل / قطعة)</label>
+              <input type="number" step="any" name="netQuantity" required placeholder="150" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+            </div>
+            <div class="flex items-end">
+              <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition cursor-pointer">
+                إضافة للوصفة وتسعير الوجبة
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- جدول مكونات الوصفات -->
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+          <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs">
+              <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                <tr>
+                  <th class="p-3.5">كود الوجبة</th>
+                  <th class="p-3.5">اسم الوجبة</th>
+                  <th class="p-3.5">التصنيف</th>
+                  <th class="p-3.5">كود المكون</th>
+                  <th class="p-3.5">اسم المكون</th>
+                  <th class="p-3.5">الكمية الصافية</th>
+                  <th class="p-3.5">تكلفة المكون (UZS)</th>
+                </tr>
+              </thead>
+              <tbody id="recipesTableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== التبويب 4: المعاملات المالية ==================== -->
+      <section id="view-parameters" class="hidden">
+        <div class="max-w-2xl bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+          <h3 class="text-base font-bold text-slate-900 mb-1">⚙️ إعدادات ومعاملات التسعير</h3>
+          <p class="text-xs text-slate-500 mb-5">تُدخل النسب كأرقام عشرية (مثال: 0.15 تعني 15%). تعديل أي نسبة يعيد تسعير كافة الوجبات تلقائياً.</p>
+          
+          <form id="parametersForm" class="space-y-4 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">نسبة المصاريف التشغيلية (overheadsPct)</label>
+                <input type="number" step="0.01" id="param_overheadsPct" name="overheadsPct" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+              </div>
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">ضريبة القيمة المضافة (vatPct)</label>
+                <input type="number" step="0.01" id="param_vatPct" name="vatPct" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+              </div>
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">عمولة تطبيقات التوصيل (deliveryCommissionPct)</label>
+                <input type="number" step="0.01" id="param_deliveryCommissionPct" name="deliveryCommissionPct" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+              </div>
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">نسبة تكلفة الطعام المستهدفة (targetFoodCostPct)</label>
+                <input type="number" step="0.01" id="param_targetFoodCostPct" name="targetFoodCostPct" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+              </div>
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">حد تنبيه التضخم (inflationThresholdPct)</label>
+                <input type="number" step="0.01" id="param_inflationThresholdPct" name="inflationThresholdPct" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+              </div>
+            </div>
+
+            <div data-perm="EDIT_PARAMETERS" class="hidden pt-3">
+              <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl transition cursor-pointer">
+                حفظ المعاملات وإعادة تسعير القائمة
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ==================== التبويب 5: المستخدمين والصلاحيات ==================== -->
+      <section id="view-users" data-perm="MANAGE_USERS" class="hidden space-y-6">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+          <h3 class="text-sm font-bold text-slate-900 mb-4">🔐 إضافة أو تعديل صلاحيات مستخدم</h3>
+          <form id="userForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">معرف المستخدم (مثال: USR-004)</label>
+              <input type="text" name="userId" required placeholder="USR-004" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">الاسم الكامل</label>
+              <input type="text" name="fullName" required placeholder="سارة محمود" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">البريد الإلكتروني</label>
+              <input type="email" name="email" required placeholder="sara@restaurant.uz" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">رمز الدخول الجديد (Token)</label>
+              <input type="text" name="accessToken" placeholder="اتركه فارغاً للإبقاء على الرمز الحالي" class="w-full p-2.5 border border-slate-300 rounded-xl" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">الدور الوظيفي (Role)</label>
+              <select name="role" class="w-full p-2.5 border border-slate-300 rounded-xl bg-white">
+                <option value="Admin">مدير نظام (Admin)</option>
+                <option value="Chef">شيف تنفيذي (Chef)</option>
+                <option value="Accountant">محاسب تكاليف (Accountant)</option>
+                <option value="Viewer">مراقب (Viewer)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1">حالة الحساب</label>
+              <select name="status" class="w-full p-2.5 border border-slate-300 rounded-xl bg-white">
+                <option value="Active">نشط (Active)</option>
+                <option value="Suspended">موقوف (Suspended)</option>
+              </select>
+            </div>
+            <div class="sm:col-span-2 lg:col-span-3">
+              <label class="block font-bold text-slate-600 mb-2">الصلاحيات الممنوحة:</label>
+              <div class="flex flex-wrap gap-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <label class="flex items-center gap-1.5"><input type="checkbox" name="perm" value="ALL"> كافة الصلاحيات (ALL)</label>
+                <label class="flex items-center gap-1.5"><input type="checkbox" name="perm" value="READ_ALL" checked> قراءة البيانات (READ_ALL)</label>
+                <label class="flex items-center gap-1.5"><input type="checkbox" name="perm" value="EDIT_INGREDIENTS"> تعديل الخامات (EDIT_INGREDIENTS)</label>
+                <label class="flex items-center gap-1.5"><input type="checkbox" name="perm" value="EDIT_RECIPES"> تعديل الوصفات (EDIT_RECIPES)</label>
+                <label class="flex items-center gap-1.5"><input type="checkbox" name="perm" value="EDIT_PARAMETERS"> تعديل المعاملات (EDIT_PARAMETERS)</label>
+                <label class="flex items-center gap-1.5"><input type="checkbox" name="perm" value="RECALCULATE_PRICING"> إعادة التسعير (RECALCULATE_PRICING)</label>
+                <label class="flex items-center gap-1.5"><input type="checkbox" name="perm" value="MANAGE_USERS"> إدارة المستخدمين (MANAGE_USERS)</label>
+              </div>
+            </div>
+            <div class="sm:col-span-2 lg:col-span-3 flex justify-end">
+              <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl transition cursor-pointer">
+                حفظ بيانات المستخدم
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- جدول المستخدمين -->
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+          <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs">
+              <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                <tr>
+                  <th class="p-3.5">المعرف</th>
+                  <th class="p-3.5">الاسم</th>
+                  <th class="p-3.5">البريد الإلكتروني</th>
+                  <th class="p-3.5">الدور</th>
+                  <th class="p-3.5">الصلاحيات</th>
+                  <th class="p-3.5">الحالة</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ==================== 3. منطق التطبيق (JavaScript) ==================== -->
+  <script>
+    // حالة التطبيق (Application State)
+    let state = {
+      apiUrl: localStorage.getItem('erp_api_url') || '',
+      token: sessionStorage.getItem('erp_token') || '',
+      currentUser: null,
+      data: {
+        parameters: {},
+        ingredients: [],
+        recipes: [],
+        pricing: [],
+        users: []
+      }
+    };
+
+    // تنسيق الأرقام بالعملة الأوزبكية
+    const formatUZS = (num) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(num || 0) + ' UZS';
+
+    // إظهار الإشعارات
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toast');
+      const content = document.getElementById('toastContent');
+      content.className = `px-5 py-3 rounded-xl shadow-lg text-white font-semibold text-sm flex items-center gap-2 ${isError ? 'bg-red-600' : 'bg-emerald-600'}`;
+      content.innerHTML = `<span>${isError ? '⚠️' : '✅'}</span> <span>${message}</span>`;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 4000);
+    }
+
+    const setLoading = (loading) => {
+      document.getElementById('globalLoader').classList.toggle('hidden', !loading);
+    };
+
+    // التحقق من الصلاحيات لإظهار/إخفاء عناصر الواجهة
+    function applyPermissionsUI(user) {
+      document.getElementById('userDisplayName').textContent = user.name;
+      document.getElementById('userDisplayRole').textContent = user.role;
+
+      const perms = user.permissions || [];
+      const hasAll = perms.includes('ALL');
+
+      document.querySelectorAll('[data-perm]').forEach(el => {
+        const reqPerm = el.getAttribute('data-perm');
+        if (hasAll || perms.includes(reqPerm)) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+    }
+
+    // تسجيل الدخول
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const apiUrl = document.getElementById('apiUrlInput').value.trim();
+      const token = document.getElementById('tokenInput').value.trim();
+
+      state.apiUrl = apiUrl;
+      state.token = token;
+      localStorage.setItem('erp_api_url', apiUrl);
+      sessionStorage.setItem('erp_token', token);
+
+      const success = await syncAllData();
+      if (success) {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('dashboardScreen').classList.remove('hidden');
+      }
+    });
+
+    // تسجيل الخروج
+    function logout() {
+      sessionStorage.removeItem('erp_token');
+      state.token = '';
+      state.currentUser = null;
+      document.getElementById('dashboardScreen').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+    }
+
+    // جلب كافة البيانات من الخادم (GET)
+    async function syncAllData() {
+      setLoading(true);
+      try {
+        const url = `${state.apiUrl}?token=${encodeURIComponent(state.token)}`;
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (result.status === 'error') {
+          showToast(result.message, true);
+          setLoading(false);
+          return false;
         }
 
-        function updateConvFactor() {
-            const unit = document.getElementById('ingUnit').value;
-            document.getElementById('ingConv').value = unit.includes('1000') ? 1000 : 1;
+        state.currentUser = result.currentUser;
+        state.data.parameters = result.parameters || {};
+        state.data.ingredients = result.ingredients || [];
+        state.data.recipes = result.recipes || [];
+        state.data.pricing = result.pricing || [];
+
+        applyPermissionsUI(state.currentUser);
+        renderAllViews();
+
+        // إذا كان المستخدم يملك صلاحية إدارة المستخدمين، نجلب قائمة المستخدمين
+        const perms = state.currentUser.permissions || [];
+        if (perms.includes('ALL') || perms.includes('MANAGE_USERS')) {
+          await fetchUsersList();
         }
 
-        function editIngredient(id, name, price, waste, conv) {
-            document.getElementById('ingId').value = id;
-            document.getElementById('ingName').value = name;
-            document.getElementById('ingPrice').value = price;
-            document.getElementById('ingWaste').value = waste;
-            document.getElementById('ingConv').value = conv;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        setLoading(false);
+        return true;
+      } catch (err) {
+        showToast('فشل الاتصال بالخادم. تأكد من صحة الرابط وصلاحيات النشر (Anyone).', true);
+        setLoading(false);
+        return false;
+      }
+    }
 
-        document.getElementById('ingredientForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const payload = {
-                id: document.getElementById('ingId').value,
-                name: document.getElementById('ingName').value,
-                purchaseUnit: document.getElementById('ingUnit').value,
-                purchasePrice: document.getElementById('ingPrice').value,
-                wastePercent: document.getElementById('ingWaste').value,
-                conversionFactor: document.getElementById('ingConv').value
-            };
-            const res = await apiCall('addIngredient', { payload });
-            if (res) {
-                alert(res.message);
-                document.getElementById('ingredientForm').reset();
-                document.getElementById('ingId').value = '';
-                loadData();
-            }
+    async function fetchUsersList() {
+      try {
+        const url = `${state.apiUrl}?action=getUsers&token=${encodeURIComponent(state.token)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          state.data.users = data;
+          renderUsersTable();
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    // إرسال أوامر التعديل (POST)
+    async function sendPostAction(action, payload = {}) {
+      setLoading(true);
+      try {
+        const response = await fetch(state.apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // لتجنب مشاكل CORS مع Apps Script
+          body: JSON.stringify({
+            token: state.token,
+            action: action,
+            payload: payload
+          })
         });
-
-        function addIngredientRow() {
-            const container = document.getElementById('recipeItemsContainer');
-            const options = globalData.ingredients.map(i => `<option value="${i.ID}">${i.Name} (${Number(i.Net_Unit_Cost_UZS).toFixed(1)} UZS/جم)</option>`).join('');
-            const row = document.createElement('div');
-            row.className = "flex gap-2 items-center";
-            row.innerHTML = `
-                <select class="ing-select flex-1 p-2 border rounded-lg" required>${options}</select>
-                <input type="number" step="0.1" placeholder="الكمية (جرام / مل)" class="ing-qty w-40 p-2 border rounded-lg" required>
-                <button type="button" onclick="this.parentElement.remove()" class="text-red-500 font-bold px-2">✕</button>
-            `;
-            container.appendChild(row);
+        const result = await response.json();
+        if (result.status === 'error') {
+          showToast(result.message, true);
+          setLoading(false);
+          return false;
         }
+        showToast(result.message || 'تمت العملية بنجاح');
+        await syncAllData();
+        return true;
+      } catch (err) {
+        showToast('حدث خطأ أثناء إرسال البيانات للخادم', true);
+        setLoading(false);
+        return false;
+      }
+    }
 
-        document.getElementById('recipeForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const items = [];
-            document.querySelectorAll('#recipeItemsContainer > div').forEach(row => {
-                items.push({
-                    ingredientId: row.querySelector('.ing-select').value,
-                    qty: row.querySelector('.ing-qty').value
-                });
-            });
+    // التنقل بين التبويبات
+    function switchTab(tabName) {
+      ['pricing', 'ingredients', 'recipes', 'parameters', 'users'].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add('hidden');
+        const btn = document.getElementById(`tab-${t}`);
+        if (btn) btn.classList.remove('tab-active', 'text-blue-700');
+      });
+      document.getElementById(`view-${tabName}`).classList.remove('hidden');
+      document.getElementById(`tab-${tabName}`).classList.add('tab-active');
+    }
 
-            const payload = {
-                dishName: document.getElementById('recName').value,
-                category: document.getElementById('recCategory').value,
-                targetFoodCost: document.getElementById('recTargetFC').value,
-                packagingCost: document.getElementById('recPackaging').value,
-                deliveryComm: document.getElementById('recDeliveryComm').value,
-                salesVolume: document.getElementById('recSalesVol').value,
-                items
-            };
+    // عرض كافة الجداول والبيانات
+    function renderAllViews() {
+      // 1. تحديث بطاقات الإحصائيات
+      document.getElementById('kpiMealsCount').textContent = state.data.pricing.length;
+      document.getElementById('kpiIngredientsCount').textContent = state.data.ingredients.length;
+      const inflationAlerts = state.data.ingredients.filter(i => i.inflationAlert && i.inflationAlert.includes('ارتفع')).length;
+      document.getElementById('kpiInflationCount').textContent = inflationAlerts;
+      const targetPct = ((state.data.parameters.targetFoodCostPct || 0.3) * 100).toFixed(0);
+      document.getElementById('kpiTargetFoodCost').textContent = `${targetPct}%`;
 
-            const res = await apiCall('saveRecipe', { payload });
-            if (res) {
-                alert(res.message);
-                document.getElementById('recipeForm').reset();
-                document.getElementById('recipeItemsContainer').innerHTML = '';
-                loadData();
-                switchTab('dashboard');
-            }
-        });
+      // 2. جدول التسعير
+      const pricingBody = document.getElementById('pricingTableBody');
+      pricingBody.innerHTML = state.data.pricing.length ? state.data.pricing.map(item => `
+        <tr class="hover:bg-slate-50/80">
+          <td class="p-3.5 font-bold text-slate-700">${item.mealCode}</td>
+          <td class="p-3.5 font-bold text-slate-900">${item.mealName}</td>
+          <td class="p-3.5">${formatUZS(item.rawMaterialCost)}</td>
+          <td class="p-3.5">${formatUZS(item.packagingCost)}</td>
+          <td class="p-3.5">${formatUZS(item.totalDineInCost)}</td>
+          <td class="p-3.5">${formatUZS(item.totalDeliveryCost)}</td>
+          <td class="p-3.5 bg-blue-50/40 font-extrabold text-blue-700">${formatUZS(item.suggestedDineInPrice)}</td>
+          <td class="p-3.5 bg-indigo-50/40 font-extrabold text-indigo-700">${formatUZS(item.suggestedDeliveryPrice)}</td>
+          <td class="p-3.5 font-bold text-emerald-600">${formatUZS(item.dineInNetProfit)}</td>
+          <td class="p-3.5 font-bold text-emerald-600">${formatUZS(item.deliveryNetProfit)}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="10" class="p-6 text-center text-slate-400">لا توجد وجبات مسعرة بعد. أضف مكونات في تبويب الوصفات.</td></tr>';
 
-        function populateSettings() {
-            document.getElementById('setTax').value = globalData.settings.TAX_RATE || 0.04;
-            document.getElementById('setOverhead').value = globalData.settings.OVERHEAD_PERCENT || 0.15;
-            document.getElementById('setRounding').value = globalData.settings.ROUNDING_UNIT || 1000;
-        }
+      // 3. جدول الخامات + قائمة الاختيار في الوصفات
+      const ingBody = document.getElementById('ingredientsTableBody');
+      const ingSelect = document.getElementById('recipeIngredientSelect');
+      ingSelect.innerHTML = '<option value="">-- اختر المكون --</option>';
 
-        document.getElementById('settingsForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const payload = {
-                TAX_RATE: document.getElementById('setTax').value,
-                OVERHEAD_PERCENT: document.getElementById('setOverhead').value,
-                ROUNDING_UNIT: document.getElementById('setRounding').value
-            };
-            const res = await apiCall('updateSettings', { payload });
-            if (res) {
-                alert(res.message);
-                loadData();
-            }
-        });
-    </script>
+      ingBody.innerHTML = state.data.ingredients.length ? state.data.ingredients.map(ing => {
+        ingSelect.innerHTML += `<option value="${ing.code}" data-name="${ing.name}">${ing.code} - ${ing.name} (${ing.actualUnitCost} UZS/وحدة)</option>`;
+        const isAlert = ing.inflationAlert && ing.inflationAlert.includes('ارتفع');
+        return `
+          <tr class="hover:bg-slate-50/80">
+            <td class="p-3.5 font-bold text-slate-700">${ing.code}</td>
+            <td class="p-3.5 font-bold text-slate-900">${ing.name}</td>
+            <td class="p-3.5">${ing.unit}</td>
+            <td class="p-3.5 text-slate-500">${formatUZS(ing.prevPrice)}</td>
+            <td class="p-3.5 font-bold">${formatUZS(ing.currentPrice)}</td>
+            <td class="p-3.5">
+              <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${isAlert ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+                ${ing.inflationAlert}
+              </span>
+            </td>
+            <td class="p-3.5">${(ing.wastePct * 100).toFixed(1)}%</td>
+            <td class="p-3.5">${ing.conversionFactor}</td>
+            <td class="p-3.5 bg-blue-50/40 font-extrabold text-blue-700">${ing.actualUnitCost} UZS</td>
+          </tr>
+        `;
+      }).join('') : '<tr><td colspan="9" class="p-6 text-center text-slate-400">لا توجد خامات مسجلة حالياً.</td></tr>';
+
+      // 4. جدول الوصفات
+      const recBody = document.getElementById('recipesTableBody');
+      recBody.innerHTML = state.data.recipes.length ? state.data.recipes.map(rec => `
+        <tr class="hover:bg-slate-50/80">
+          <td class="p-3.5 font-bold text-slate-700">${rec.mealCode}</td>
+          <td class="p-3.5 font-bold text-slate-900">${rec.mealName}</td>
+          <td class="p-3.5"><span class="px-2 py-0.5 bg-slate-100 rounded text-slate-700">${rec.componentType}</span></td>
+          <td class="p-3.5 text-slate-600">${rec.ingredientCode}</td>
+          <td class="p-3.5">${rec.ingredientName}</td>
+          <td class="p-3.5 font-bold">${rec.netQuantity}</td>
+          <td class="p-3.5 font-bold text-blue-700">${formatUZS(rec.componentCost)}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="7" class="p-6 text-center text-slate-400">لا توجد وصفات مسجلة حالياً.</td></tr>';
+
+      // 5. تعبئة نموذج المعاملات
+      const p = state.data.parameters;
+      if (p) {
+        document.getElementById('param_overheadsPct').value = p.overheadsPct ?? 0.15;
+        document.getElementById('param_vatPct').value = p.vatPct ?? 0.12;
+        document.getElementById('param_deliveryCommissionPct').value = p.deliveryCommissionPct ?? 0.25;
+        document.getElementById('param_targetFoodCostPct').value = p.targetFoodCostPct ?? 0.30;
+        document.getElementById('param_inflationThresholdPct').value = p.inflationThresholdPct ?? 0.10;
+      }
+    }
+
+    function renderUsersTable() {
+      const usersBody = document.getElementById('usersTableBody');
+      usersBody.innerHTML = state.data.users.map(u => `
+        <tr class="hover:bg-slate-50/80">
+          <td class="p-3.5 font-bold">${u.userId}</td>
+          <td class="p-3.5 font-bold text-slate-900">${u.fullName}</td>
+          <td class="p-3.5 text-slate-500">${u.email}</td>
+          <td class="p-3.5"><span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-bold">${u.role}</span></td>
+          <td class="p-3.5 text-[11px] text-slate-600">${(u.permissions || []).join(', ')}</td>
+          <td class="p-3.5">
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${u.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">
+              ${u.status}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // --- ربط النماذج بالأحداث (Form Submissions) ---
+
+    // حفظ مكون
+    document.getElementById('ingredientForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const payload = {
+        code: fd.get('code').trim(),
+        name: fd.get('name').trim(),
+        unit: fd.get('unit'),
+        prevPrice: parseFloat(fd.get('prevPrice')),
+        currentPrice: parseFloat(fd.get('currentPrice')),
+        wastePct: parseFloat(fd.get('wastePct')),
+        conversionFactor: parseFloat(fd.get('conversionFactor'))
+      };
+      if (await sendPostAction('addIngredient', payload)) e.target.reset();
+    });
+
+    // حفظ مكون في وصفة
+    document.getElementById('recipeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const select = document.getElementById('recipeIngredientSelect');
+      const ingName = select.options[select.selectedIndex]?.getAttribute('data-name') || '';
+
+      const payload = {
+        mealCode: fd.get('mealCode').trim(),
+        mealName: fd.get('mealName').trim(),
+        componentType: fd.get('componentType'),
+        ingredientCode: fd.get('ingredientCode'),
+        ingredientName: ingName,
+        netQuantity: parseFloat(fd.get('netQuantity'))
+      };
+      if (await sendPostAction('addRecipeComponent', payload)) {
+        e.target.querySelector('[name="netQuantity"]').value = '';
+      }
+    });
+
+    // تحديث المعاملات
+    document.getElementById('parametersForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const payload = {
+        overheadsPct: parseFloat(fd.get('overheadsPct')),
+        vatPct: parseFloat(fd.get('vatPct')),
+        deliveryCommissionPct: parseFloat(fd.get('deliveryCommissionPct')),
+        targetFoodCostPct: parseFloat(fd.get('targetFoodCostPct')),
+        inflationThresholdPct: parseFloat(fd.get('inflationThresholdPct'))
+      };
+      await sendPostAction('updateParameters', payload);
+    });
+
+    // إضافة/تحديث مستخدم
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const perms = Array.from(e.target.querySelectorAll('input[name="perm"]:checked')).map(cb => cb.value);
+
+      const payload = {
+        userId: fd.get('userId').trim(),
+        fullName: fd.get('fullName').trim(),
+        email: fd.get('email').trim(),
+        accessToken: fd.get('accessToken').trim(),
+        role: fd.get('role'),
+        status: fd.get('status'),
+        permissions: perms
+      };
+      if (await sendPostAction('addOrUpdateUser', payload)) e.target.reset();
+    });
+
+    // إعادة التسعير الشامل
+    async function recalculateAll() {
+      await sendPostAction('recalculateAllPricing', {});
+    }
+
+    // التهيئة التلقائية عند فتح الصفحة
+    window.addEventListener('DOMContentLoaded', () => {
+      if (state.apiUrl) document.getElementById('apiUrlInput').value = state.apiUrl;
+      if (state.apiUrl && state.token) {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('dashboardScreen').classList.remove('hidden');
+        syncAllData();
+      }
+    });
+  </script>
 </body>
 </html>
